@@ -161,6 +161,12 @@ impl CPU {
                 0x0A => self.asl_accumulator(),
                 0x06 | 0x16 | 0x0E | 0x1E => self.asl(&opcode.mode),
 
+                // BCC - Branch if Carry Clear
+                0x90 => self.bcc(),
+
+                // BCS - Branch if Carry Set
+                0xB0 => self.bcs(),
+
                 0xAA => self.tax(),
 
                 0xE8 => self.inx(),
@@ -365,6 +371,24 @@ impl CPU {
         self.set_register_a(data);
     }
 
+    /**
+     * BCC - Branch if Carry Clear
+     * If the carry flag is clear then add the relative displacement to the program counter to cause a branch to a new location.
+     * <https://www.nesdev.org/obelisk-6502-guide/reference.html#BCC>
+     */
+    fn bcc(&mut self) {
+        self.branch(!self.status.contains(CpuFlags::CARRY));
+    }
+
+    /**
+     * BCS - Branch if Carry Set
+     * If the carry flag is set then add the relative displacement to the program counter to cause a branch to a new location.
+     * <https://www.nesdev.org/obelisk-6502-guide/reference.html#BCS>
+     */
+    fn bcs(&mut self) {
+        self.branch(self.status.contains(CpuFlags::CARRY));
+    }
+
     fn add_to_register_a(&mut self, data: u8) {
         // sum accumulator, data and carry flag if set
         let sum = u16::from(self.register_a)
@@ -402,6 +426,20 @@ impl CPU {
     }
     fn clear_carry_flag(&mut self) {
         self.status.remove(CpuFlags::CARRY);
+    }
+
+    fn branch(&mut self, condition: bool) {
+        if condition {
+            #[allow(clippy::cast_possible_wrap)]
+            let relative_displacement: i8 = self.mem_read(self.program_counter) as i8;
+            #[allow(clippy::cast_sign_loss)]
+            let jump_addr = self
+                .program_counter
+                .wrapping_add(1)
+                .wrapping_add(relative_displacement as u16);
+
+            self.program_counter = jump_addr;
+        }
     }
 }
 
@@ -560,5 +598,24 @@ mod test {
         assert_eq!(cpu.status.contains(CpuFlags::NEGATIVE), false);
         assert_eq!(cpu.status.contains(CpuFlags::ZERO), false);
         assert_eq!(cpu.status.contains(CpuFlags::CARRY), false);
+    }
+
+    #[test]
+    fn test_branch_if_carry_clear() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(&vec![
+            0x90, 0x08, 0xA9, 0x01, 0xC9, 0x02, 0xD0, 0x02, 0x85, 0x22, 0x00,
+        ]);
+
+        assert_eq!(cpu.program_counter, 0x800B);
+    }
+
+    #[test]
+    fn test_branch_if_carry_set() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(&vec![0xA9, 0xFF, 0x69, 0x02, 0xB0, 0x02, 0xA9, 0x0F, 0x00]);
+
+        assert_eq!(cpu.register_a, 0x01);
+        assert_eq!(cpu.program_counter, 0x8009);
     }
 }
