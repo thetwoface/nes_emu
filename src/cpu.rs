@@ -147,9 +147,14 @@ impl CPU {
                     self.adc(&opcode.mode);
                 }
 
-                /* SBC */
+                // SBC
                 0xE9 | 0xE5 | 0xF5 | 0xED | 0xFD | 0xF9 | 0xE1 | 0xF1 => {
                     self.sbc(&opcode.mode);
+                }
+
+                // AND - Logical AND
+                0x29 | 0x25 | 0x35 | 0x2D | 0x3D | 0x39 | 0x21 | 0x31 => {
+                    self.and(&opcode.mode);
                 }
 
                 0xAA => self.tax(),
@@ -308,6 +313,18 @@ impl CPU {
         self.add_to_register_a(((data as i8).wrapping_neg().wrapping_sub(1)) as u8);
     }
 
+    /**
+     * AND - Logical AND
+     * A logical AND is performed, bit by bit, on the accumulator contents using the contents of a byte of memory.
+     * <https://www.nesdev.org/obelisk-6502-guide/reference.html#AND>
+     */
+    fn and(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        let data = self.mem_read(addr);
+
+        self.set_register_a(self.register_a & data);
+    }
+
     fn add_to_register_a(&mut self, data: u8) {
         // sum accumulator, data and carry flag if set
         let sum = u16::from(self.register_a)
@@ -463,6 +480,16 @@ mod test {
 
         assert_eq!(cpu.register_a, 0xFE);
         assert_eq!(cpu.status.contains(CpuFlags::CARRY), false);
+        assert_eq!(cpu.status.contains(CpuFlags::ZERO), false);
+    }
+
+    #[test]
+    fn test_logical_and() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(&vec![0xA9, 0xFF, 0x29, 0xF0]);
+
+        assert_eq!(cpu.register_a, 0xF0);
+        assert_eq!(cpu.status.contains(CpuFlags::NEGATIVE), true);
         assert_eq!(cpu.status.contains(CpuFlags::ZERO), false);
     }
 }
