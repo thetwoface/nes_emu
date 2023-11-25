@@ -173,6 +173,15 @@ impl CPU {
                 // BNE - Branch if Not Equal
                 0xD0 => self.bne(),
 
+                // BMI - Branch if Minus
+                0x30 => self.bmi(),
+
+                // BPL - Branch if Positive
+                0x10 => self.bpl(),
+
+                // BIT - Bit Test
+                0x24 | 0x2C => self.bit(&opcode.mode),
+
                 0xAA => self.tax(),
 
                 0xE8 => self.inx(),
@@ -413,6 +422,48 @@ impl CPU {
         self.branch(!self.status.contains(CpuFlags::ZERO));
     }
 
+    /**
+     * BMI - Branch if Minus
+     * If the negative flag is set then add the relative displacement to the program counter to cause a branch to a new location.
+     * <https://www.nesdev.org/obelisk-6502-guide/reference.html#BMI>
+     */
+    fn bmi(&mut self) {
+        self.branch(self.status.contains(CpuFlags::NEGATIVE));
+    }
+
+    /**
+     * BPL - Branch if Positive
+     * If the negative flag is clear then add the relative displacement to the program counter to cause a branch to a new location.
+     * <https://www.nesdev.org/obelisk-6502-guide/reference.html#BPL>
+     */
+    fn bpl(&mut self) {
+        self.branch(!self.status.contains(CpuFlags::NEGATIVE));
+    }
+
+    /**
+     * BIT - Bit Test
+     * This instructions is used to test if one or more bits are set in a target memory location.
+     * The mask pattern in A is `AND`ed with the value in memory to set or clear the zero flag, but the result is not kept.
+     * Bits 7 and 6 of the value from memory are copied into the N and V flags.
+     * <https://www.nesdev.org/obelisk-6502-guide/reference.html#BIT>
+     */
+    fn bit(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        let data = self.mem_read(addr);
+        let result = self.register_a & data;
+
+        if result == 0 {
+            self.set_zero_flag();
+        } else {
+            self.clear_zero_flag();
+        }
+
+        // Set to bit 6 of the memory value
+        self.status.set(CpuFlags::OVERFLOW, data & 0b0100_0000 > 0);
+        // Set to bit 7 of the memory value
+        self.status.set(CpuFlags::NEGATIVE, data & 0b1000_0000 > 0);
+    }
+
     fn add_to_register_a(&mut self, data: u8) {
         // sum accumulator, data and carry flag if set
         let sum = u16::from(self.register_a)
@@ -450,6 +501,14 @@ impl CPU {
     }
     fn clear_carry_flag(&mut self) {
         self.status.remove(CpuFlags::CARRY);
+    }
+
+    fn set_zero_flag(&mut self) {
+        self.status.insert(CpuFlags::ZERO);
+    }
+
+    fn clear_zero_flag(&mut self) {
+        self.status.remove(CpuFlags::ZERO);
     }
 
     fn branch(&mut self, condition: bool) {
@@ -660,4 +719,31 @@ mod test {
         assert_eq!(cpu.register_a, 0xFF);
         assert_eq!(cpu.program_counter, 0x8007);
     }
+
+    #[test]
+    fn test_branch_if_minus() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(&vec![0xA9, 0xFF, 0x29, 0xFF, 0x30, 0x02, 0xA9, 0xEE, 0x00]);
+
+        assert_eq!(cpu.register_a, 0xFF);
+        assert_eq!(cpu.program_counter, 0x8009);
+    }
+
+    #[test]
+    fn test_branch_if_positive() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(&vec![0xA9, 0x0F, 0x10, 0x02, 0xA9, 0xEE, 0x00]);
+
+        assert_eq!(cpu.register_a, 0x0F);
+        assert_eq!(cpu.program_counter, 0x8007);
+    }
+
+    //#[test]
+    //fn test_bit_test() {
+    //let mut cpu = CPU::new();
+    //cpu.load_and_run(&vec![0xA9, 0xFF, 0xD0, 0x02, 0xA9, 0x00, 0x00]);
+
+    //assert_eq!(cpu.register_a, 0xFF);
+    //assert_eq!(cpu.program_counter, 0x8007);
+    //}
 }
