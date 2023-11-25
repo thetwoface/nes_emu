@@ -75,6 +75,8 @@ lazy_static! {
         // Branching
         OpCode::new(0x90, "BCC", 2, 2/*+1 if branch succeeds +2 if to a new page */, AddressingMode::NoneAddressing),
         OpCode::new(0xB0, "BCS", 2, 2/*+1 if branch succeeds +2 if to a new page */, AddressingMode::NoneAddressing),
+        OpCode::new(0xF0, "BEQ", 2, 2/*+1 if branch succeeds +2 if to a new page */, AddressingMode::NoneAddressing),
+        OpCode::new(0xD0, "BNE", 2, 2/*+1 if branch succeeds +2 if to a new page */, AddressingMode::NoneAddressing),
 
         OpCode::new(0x85, "STA", 2, 3, AddressingMode::ZeroPage),
         OpCode::new(0x95, "STA", 2, 4, AddressingMode::ZeroPageX),

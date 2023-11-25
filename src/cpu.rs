@@ -167,6 +167,12 @@ impl CPU {
                 // BCS - Branch if Carry Set
                 0xB0 => self.bcs(),
 
+                // BEQ - Branch if Equal
+                0xF0 => self.beq(),
+
+                // BNE - Branch if Not Equal
+                0xD0 => self.bne(),
+
                 0xAA => self.tax(),
 
                 0xE8 => self.inx(),
@@ -387,6 +393,24 @@ impl CPU {
      */
     fn bcs(&mut self) {
         self.branch(self.status.contains(CpuFlags::CARRY));
+    }
+
+    /**
+     * BEQ - Branch if Equal
+     * If the zero flag is set then add the relative displacement to the program counter to cause a branch to a new location.
+     * <https://www.nesdev.org/obelisk-6502-guide/reference.html#BEQ>
+     */
+    fn beq(&mut self) {
+        self.branch(self.status.contains(CpuFlags::ZERO));
+    }
+
+    /**
+     * BNE - Branch if Not Equal
+     * If the zero flag is clear then add the relative displacement to the program counter to cause a branch to a new location.
+     * <https://www.nesdev.org/obelisk-6502-guide/reference.html#BNE>
+     */
+    fn bne(&mut self) {
+        self.branch(!self.status.contains(CpuFlags::ZERO));
     }
 
     fn add_to_register_a(&mut self, data: u8) {
@@ -617,5 +641,23 @@ mod test {
 
         assert_eq!(cpu.register_a, 0x01);
         assert_eq!(cpu.program_counter, 0x8009);
+    }
+
+    #[test]
+    fn test_branch_if_equal() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(&vec![0xA9, 0x00, 0xF0, 0x02, 0xA9, 0xFF, 0x00]);
+
+        assert_eq!(cpu.register_a, 0x00);
+        assert_eq!(cpu.program_counter, 0x8007);
+    }
+
+    #[test]
+    fn test_branch_if_not_equal() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(&vec![0xA9, 0xFF, 0xD0, 0x02, 0xA9, 0x00, 0x00]);
+
+        assert_eq!(cpu.register_a, 0xFF);
+        assert_eq!(cpu.program_counter, 0x8007);
     }
 }
