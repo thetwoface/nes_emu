@@ -185,6 +185,12 @@ impl CPU {
                 // BPL - Branch if Positive
                 0x10 => self.bpl(),
 
+                // BVC - Branch if Overflow Clear
+                0x50 => self.bvc(),
+
+                // BVS - Branch if Overflow Set
+                0x70 => self.bvs(),
+
                 // BIT - Bit Test
                 0x24 | 0x2C => self.bit(&opcode.mode),
 
@@ -468,6 +474,24 @@ impl CPU {
      */
     fn bne(&mut self) {
         self.branch(!self.status.contains(CpuFlags::ZERO));
+    }
+
+    /**
+     * BVC - Branch if Overflow Clear
+     * If the overflow flag is clear then add the relative displacement to the program counter to cause a branch to a new location.
+     * <https://www.nesdev.org/obelisk-6502-guide/reference.html#BVC>
+     */
+    fn bvc(&mut self) {
+        self.branch(!self.status.contains(CpuFlags::OVERFLOW));
+    }
+
+    /**
+     * BVS - Branch if Overflow Set
+     * If the overflow flag is set then add the relative displacement to the program counter to cause a branch to a new location.
+     * <https://www.nesdev.org/obelisk-6502-guide/reference.html#BVS>
+     */
+    fn bvs(&mut self) {
+        self.branch(self.status.contains(CpuFlags::OVERFLOW));
     }
 
     /**
@@ -779,6 +803,22 @@ mod test {
         cpu.load_and_run(&vec![0xA9, 0x0F, 0x10, 0x02, 0xA9, 0xEE, 0x00]);
 
         assert_eq!(cpu.register_a, 0x0F);
+    }
+
+    #[test]
+    fn test_branch_if_overflow_clear() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(&vec![0xA9, 0xFF, 0x50, 0x02, 0xA9, 0xEE, 0x00]);
+
+        assert_eq!(cpu.register_a, 0xFF);
+    }
+
+    #[test]
+    fn test_branch_if_overflow_set() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(&vec![0xA9, 0x40, 0x69, 0x40, 0x70, 0x02, 0xA9, 0xEE, 0x00]);
+
+        assert_eq!(cpu.register_a, 0x80);
     }
 
     //#[test]
