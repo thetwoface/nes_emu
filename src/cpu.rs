@@ -41,6 +41,9 @@ pub enum AddressingMode {
     NoneAddressing,
 }
 
+const STACK_ADDR: u16 = 0x0100;
+const STACK_RESET: u8 = 0xfd;
+
 #[must_use]
 pub struct CPU {
     pub register_a: u8,
@@ -48,7 +51,8 @@ pub struct CPU {
     pub register_y: u8,
     pub status: CpuFlags,
     pub program_counter: u16,
-    pub memory: [u8; 0xFFFF],
+    pub stack_pointer: u8,
+    pub memory: [u8; 0xFFFF + 1], // from 0x0000 to 0xFFFF
 }
 
 trait Mem {
@@ -89,8 +93,9 @@ impl CPU {
             register_x: 0,
             register_y: 0,
             status: CpuFlags::from_bits_truncate(0b10_0100),
+            stack_pointer: STACK_RESET,
             program_counter: 0,
-            memory: [0; 0xFFFF],
+            memory: [0; 0xFFFF + 1],
         }
     }
 
@@ -98,6 +103,7 @@ impl CPU {
         self.register_a = 0;
         self.register_x = 0;
         self.register_y = 0;
+        self.stack_pointer = STACK_RESET;
         self.status = CpuFlags::from_bits_truncate(0b10_0100);
 
         self.program_counter = self.mem_read_u16(0xFFFC);
@@ -188,7 +194,10 @@ impl CPU {
 
                 // BRK - Force Interrupt
                 // https://www.nesdev.org/obelisk-6502-guide/reference.html#BRK
-                0x00 => return,
+                0x00 => {
+                    self.brk();
+                    return;
+                }
 
                 _ => todo!(""),
             }
@@ -249,6 +258,31 @@ impl CPU {
         }
     }
 
+    fn stack_pop(&mut self) -> u8 {
+        self.stack_pointer = self.stack_pointer.wrapping_add(1);
+        self.mem_read(STACK_ADDR + u16::from(self.stack_pointer))
+    }
+
+    fn stack_push(&mut self, data: u8) {
+        self.mem_write(STACK_ADDR + u16::from(self.stack_pointer), data);
+        self.stack_pointer = self.stack_pointer.wrapping_sub(1);
+    }
+
+    fn stack_pop_u16(&mut self) -> u16 {
+        let lo = u16::from(self.stack_pop());
+        let hi = u16::from(self.stack_pop());
+
+        hi << 8 | lo
+    }
+
+    fn stack_push_u16(&mut self, data: u16) {
+        let hi = (data >> 8) as u8;
+        let lo = (data & 0xff) as u8;
+
+        self.stack_push(hi);
+        self.stack_push(lo);
+    }
+
     /**
      * Set Zero flag if result = 0
      * Set Negative Flag if bit 7 of result is set
@@ -265,6 +299,20 @@ impl CPU {
         } else {
             self.status.insert(CpuFlags::NEGATIVE);
         }
+    }
+
+    /**
+     * BRK - Force Interrupt
+     * The BRK instruction forces the generation of an interrupt request.
+     * The program counter and processor status are pushed on the stack then the IRQ interrupt vector at $FFFE/F is loaded into the PC
+     * and the break flag in the status set to one.
+     * <https://www.nesdev.org/obelisk-6502-guide/reference.html#BRK>
+     */
+    fn brk(&mut self) {
+        self.stack_push_u16(self.program_counter);
+        self.stack_push(self.status.bits());
+        self.program_counter = self.mem_read_u16(0xFFFE);
+        self.status.insert(CpuFlags::BREAK);
     }
 
     /**
@@ -690,7 +738,7 @@ mod test {
             0x90, 0x08, 0xA9, 0x01, 0xC9, 0x02, 0xD0, 0x02, 0x85, 0x22, 0x00,
         ]);
 
-        assert_eq!(cpu.program_counter, 0x800B);
+        assert_eq!(cpu.register_a, 0x00);
     }
 
     #[test]
@@ -699,7 +747,6 @@ mod test {
         cpu.load_and_run(&vec![0xA9, 0xFF, 0x69, 0x02, 0xB0, 0x02, 0xA9, 0x0F, 0x00]);
 
         assert_eq!(cpu.register_a, 0x01);
-        assert_eq!(cpu.program_counter, 0x8009);
     }
 
     #[test]
@@ -708,7 +755,6 @@ mod test {
         cpu.load_and_run(&vec![0xA9, 0x00, 0xF0, 0x02, 0xA9, 0xFF, 0x00]);
 
         assert_eq!(cpu.register_a, 0x00);
-        assert_eq!(cpu.program_counter, 0x8007);
     }
 
     #[test]
@@ -717,7 +763,6 @@ mod test {
         cpu.load_and_run(&vec![0xA9, 0xFF, 0xD0, 0x02, 0xA9, 0x00, 0x00]);
 
         assert_eq!(cpu.register_a, 0xFF);
-        assert_eq!(cpu.program_counter, 0x8007);
     }
 
     #[test]
@@ -726,7 +771,6 @@ mod test {
         cpu.load_and_run(&vec![0xA9, 0xFF, 0x29, 0xFF, 0x30, 0x02, 0xA9, 0xEE, 0x00]);
 
         assert_eq!(cpu.register_a, 0xFF);
-        assert_eq!(cpu.program_counter, 0x8009);
     }
 
     #[test]
@@ -735,7 +779,6 @@ mod test {
         cpu.load_and_run(&vec![0xA9, 0x0F, 0x10, 0x02, 0xA9, 0xEE, 0x00]);
 
         assert_eq!(cpu.register_a, 0x0F);
-        assert_eq!(cpu.program_counter, 0x8007);
     }
 
     //#[test]
