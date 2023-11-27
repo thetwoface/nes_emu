@@ -194,6 +194,12 @@ impl CPU {
                 // BIT - Bit Test
                 0x24 | 0x2C => self.bit(&opcode.mode),
 
+                // CLC - Clear Carry Flag
+                0x18 => self.clc(),
+
+                // SEC - Set Carry Flag
+                0x38 => self.sec(),
+
                 0xAA => self.tax(),
 
                 0xE8 => self.inx(),
@@ -536,6 +542,24 @@ impl CPU {
         self.status.set(CpuFlags::NEGATIVE, data & 0b1000_0000 > 0);
     }
 
+    /**
+     * CLC - Clear Carry Flag
+     * Set the carry flag to zero.
+     * <https://www.nesdev.org/obelisk-6502-guide/reference.html#CLC>
+     */
+    fn clc(&mut self) {
+        self.clear_carry_flag();
+    }
+
+    /**
+     * SEC - Set Carry Flag
+     * Set the carry flag to one.
+     * <https://www.nesdev.org/obelisk-6502-guide/reference.html#SEC>
+     */
+    fn sec(&mut self) {
+        self.set_carry_flag();
+    }
+
     fn add_to_register_a(&mut self, data: u8) {
         // sum accumulator, data and carry flag if set
         let sum = u16::from(self.register_a)
@@ -819,6 +843,22 @@ mod test {
         cpu.load_and_run(&vec![0xA9, 0x40, 0x69, 0x40, 0x70, 0x02, 0xA9, 0xEE, 0x00]);
 
         assert_eq!(cpu.register_a, 0x80);
+    }
+
+    #[test]
+    fn test_set_carry_flag() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(&vec![0x38, 0x00]);
+
+        assert_eq!(cpu.status.contains(CpuFlags::CARRY), true);
+    }
+
+    #[test]
+    fn test_clear_carry_flag() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(&vec![0x38, 0x18, 0x00]);
+
+        assert_eq!(cpu.status.contains(CpuFlags::CARRY), false);
     }
 
     //#[test]

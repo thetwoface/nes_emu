@@ -85,6 +85,9 @@ lazy_static! {
         OpCode::new(0x24, "BIT", 2, 3, AddressingMode::ZeroPage),
         OpCode::new(0x2C, "BIT", 3, 4, AddressingMode::Absolute),
 
+        OpCode::new(0x18, "CLC", 1, 2, AddressingMode::NoneAddressing),
+        OpCode::new(0x38, "SEC", 1, 2, AddressingMode::NoneAddressing),
+
         OpCode::new(0x85, "STA", 2, 3, AddressingMode::ZeroPage),
         OpCode::new(0x95, "STA", 2, 4, AddressingMode::ZeroPageX),
         OpCode::new(0x8d, "STA", 3, 4, AddressingMode::Absolute),
