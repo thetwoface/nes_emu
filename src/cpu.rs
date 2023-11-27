@@ -212,6 +212,9 @@ impl CPU {
                 // SEI - Set Interrupt Disable
                 0x78 => self.sei(),
 
+                // CLV - Clear Overflow Flag
+                0xB8 => self.clv(),
+
                 0xAA => self.tax(),
 
                 0xE8 => self.inx(),
@@ -608,6 +611,15 @@ impl CPU {
         self.status.insert(CpuFlags::INTERRUPT_DISABLE);
     }
 
+    /**
+     * CLV - Clear Overflow Flag
+     * Clears the overflow flag.
+     * <https://www.nesdev.org/obelisk-6502-guide/reference.html#CLV>
+     */
+    fn clv(&mut self) {
+        self.status.remove(CpuFlags::OVERFLOW);
+    }
+
     fn add_to_register_a(&mut self, data: u8) {
         // sum accumulator, data and carry flag if set
         let sum = u16::from(self.register_a)
@@ -939,6 +951,14 @@ mod test {
         cpu.load_and_run(&vec![0x78, 0xA9, 0xFF, 0x58, 0x00]);
 
         assert_eq!(cpu.status.contains(CpuFlags::INTERRUPT_DISABLE), false);
+    }
+
+    #[test]
+    fn test_clear_overflow_flag() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(&vec![0xA9, 0x40, 0x69, 0x40, 0xB8, 0x00]);
+
+        assert_eq!(cpu.status.contains(CpuFlags::OVERFLOW), false);
     }
 
     //#[test]
