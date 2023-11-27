@@ -200,6 +200,12 @@ impl CPU {
                 // SEC - Set Carry Flag
                 0x38 => self.sec(),
 
+                // CLD - Clear Decimal Mode
+                0xD8 => self.cld(),
+
+                // SED - Set Decimal Flag
+                0xF8 => self.sed(),
+
                 0xAA => self.tax(),
 
                 0xE8 => self.inx(),
@@ -560,6 +566,24 @@ impl CPU {
         self.set_carry_flag();
     }
 
+    /**
+     * CLD - Clear Decimal Mode
+     * Sets the decimal mode flag to zero.
+     * <https://www.nesdev.org/obelisk-6502-guide/reference.html#CLD>
+     */
+    fn cld(&mut self) {
+        self.status.remove(CpuFlags::DECIMAL_MODE);
+    }
+
+    /**
+     * SED - Set Decimal Flag
+     * Set the decimal mode flag to one.
+     * <https://www.nesdev.org/obelisk-6502-guide/reference.html#SED>
+     */
+    fn sed(&mut self) {
+        self.status.insert(CpuFlags::DECIMAL_MODE);
+    }
+
     fn add_to_register_a(&mut self, data: u8) {
         // sum accumulator, data and carry flag if set
         let sum = u16::from(self.register_a)
@@ -859,6 +883,22 @@ mod test {
         cpu.load_and_run(&vec![0x38, 0x18, 0x00]);
 
         assert_eq!(cpu.status.contains(CpuFlags::CARRY), false);
+    }
+
+    #[test]
+    fn test_set_decimal_flag() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(&vec![0xF8, 0x00]);
+
+        assert_eq!(cpu.status.contains(CpuFlags::DECIMAL_MODE), true);
+    }
+
+    #[test]
+    fn test_clear_decimal_mode() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(&vec![0xF8, 0xD8, 0x00]);
+
+        assert_eq!(cpu.status.contains(CpuFlags::DECIMAL_MODE), false);
     }
 
     //#[test]
