@@ -206,6 +206,12 @@ impl CPU {
                 // SED - Set Decimal Flag
                 0xF8 => self.sed(),
 
+                // CLI - Clear Interrupt Disable
+                0x58 => self.cli(),
+
+                // SEI - Set Interrupt Disable
+                0x78 => self.sei(),
+
                 0xAA => self.tax(),
 
                 0xE8 => self.inx(),
@@ -584,6 +590,24 @@ impl CPU {
         self.status.insert(CpuFlags::DECIMAL_MODE);
     }
 
+    /**
+     * CLI - Clear Interrupt Disable
+     * Clears the interrupt disable flag allowing normal interrupt requests to be serviced.
+     * <https://www.nesdev.org/obelisk-6502-guide/reference.html#CLI>
+     */
+    fn cli(&mut self) {
+        self.status.remove(CpuFlags::INTERRUPT_DISABLE);
+    }
+
+    /**
+     * SEI - Set Interrupt Disable
+     * Set the interrupt disable flag to one.
+     * <https://www.nesdev.org/obelisk-6502-guide/reference.html#SEI>
+     */
+    fn sei(&mut self) {
+        self.status.insert(CpuFlags::INTERRUPT_DISABLE);
+    }
+
     fn add_to_register_a(&mut self, data: u8) {
         // sum accumulator, data and carry flag if set
         let sum = u16::from(self.register_a)
@@ -899,6 +923,22 @@ mod test {
         cpu.load_and_run(&vec![0xF8, 0xD8, 0x00]);
 
         assert_eq!(cpu.status.contains(CpuFlags::DECIMAL_MODE), false);
+    }
+
+    #[test]
+    fn test_set_interrupt_disable() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(&vec![0x78, 0x00]);
+
+        assert_eq!(cpu.status.contains(CpuFlags::INTERRUPT_DISABLE), true);
+    }
+
+    #[test]
+    fn test_clear_interrupt_disable() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(&vec![0x78, 0xA9, 0xFF, 0x58, 0x00]);
+
+        assert_eq!(cpu.status.contains(CpuFlags::INTERRUPT_DISABLE), false);
     }
 
     //#[test]

@@ -89,6 +89,8 @@ lazy_static! {
         OpCode::new(0x38, "SEC", 1, 2, AddressingMode::NoneAddressing),
         OpCode::new(0xD8, "CLD", 1, 2, AddressingMode::NoneAddressing),
         OpCode::new(0xF8, "SED", 1, 2, AddressingMode::NoneAddressing),
+        OpCode::new(0x58, "CLI", 1, 2, AddressingMode::NoneAddressing),
+        OpCode::new(0x78, "SEI", 1, 2, AddressingMode::NoneAddressing),
 
         OpCode::new(0x85, "STA", 2, 3, AddressingMode::ZeroPage),
         OpCode::new(0x95, "STA", 2, 4, AddressingMode::ZeroPageX),
