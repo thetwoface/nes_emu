@@ -139,29 +139,25 @@ impl CPU {
             // Decode the instruction
             match code {
                 // LDA - Load Accumulator
-                0xa9 | 0xa5 | 0xb5 | 0xad | 0xbd | 0xb9 | 0xa1 | 0xb1 => {
-                    self.lda(&opcode.mode);
-                }
+                0xA9 | 0xA5 | 0xB5 | 0xAD | 0xBD | 0xB9 | 0xA1 | 0xB1 => self.lda(&opcode.mode),
+
+                // LDX - Load X Register
+                0xA2 | 0xA6 | 0xB6 | 0xAE | 0xBE => self.ldx(&opcode.mode),
+
+                // LDY - Load Y Register
+                0xA0 | 0xA4 | 0xB4 | 0xAC | 0xBC => self.ldy(&opcode.mode),
 
                 // STA - Store Accumulator
-                0x85 | 0x95 | 0x8d | 0x9d | 0x99 | 0x81 | 0x91 => {
-                    self.sta(&opcode.mode);
-                }
+                0x85 | 0x95 | 0x8d | 0x9d | 0x99 | 0x81 | 0x91 => self.sta(&opcode.mode),
 
                 // ADC - Add with Carry
-                0x69 | 0x65 | 0x75 | 0x6D | 0x7D | 0x79 | 0x61 | 71 => {
-                    self.adc(&opcode.mode);
-                }
+                0x69 | 0x65 | 0x75 | 0x6D | 0x7D | 0x79 | 0x61 | 71 => self.adc(&opcode.mode),
 
                 // SBC
-                0xE9 | 0xE5 | 0xF5 | 0xED | 0xFD | 0xF9 | 0xE1 | 0xF1 => {
-                    self.sbc(&opcode.mode);
-                }
+                0xE9 | 0xE5 | 0xF5 | 0xED | 0xFD | 0xF9 | 0xE1 | 0xF1 => self.sbc(&opcode.mode),
 
                 // AND - Logical AND
-                0x29 | 0x25 | 0x35 | 0x2D | 0x3D | 0x39 | 0x21 | 0x31 => {
-                    self.and(&opcode.mode);
-                }
+                0x29 | 0x25 | 0x35 | 0x2D | 0x3D | 0x39 | 0x21 | 0x31 => self.and(&opcode.mode),
 
                 // ASL - Arithmetic Shift Left
                 0x0A => self.asl_accumulator(),
@@ -214,6 +210,15 @@ impl CPU {
 
                 // CLV - Clear Overflow Flag
                 0xB8 => self.clv(),
+
+                // CMP - Compare
+                0xC9 | 0xC5 | 0xD5 | 0xCD | 0xDD | 0xD9 | 0xC1 | 0xD1 => self.cmp(&opcode.mode),
+
+                // CPX - Compare X Register
+                0xE0 | 0xE4 | 0xEC => self.cpx(&opcode.mode),
+
+                // CPY - Compare Y Register
+                0xC0 | 0xC4 | 0xCC => self.cpy(&opcode.mode),
 
                 0xAA => self.tax(),
 
@@ -353,6 +358,32 @@ impl CPU {
 
         self.register_a = value;
         self.update_zero_and_negative_flags(self.register_a);
+    }
+
+    /**
+     * LDX - Load X Register
+     * Loads a byte of memory into the X register setting the zero and negative flags as appropriate.
+     * <https://www.nesdev.org/obelisk-6502-guide/reference.html#LDX>
+     */
+    fn ldx(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        let value = self.mem_read(addr);
+
+        self.register_x = value;
+        self.update_zero_and_negative_flags(self.register_x);
+    }
+
+    /**
+     * LDY - Load Y Register
+     * Loads a byte of memory into the Y register setting the zero and negative flags as appropriate.
+     * <https://www.nesdev.org/obelisk-6502-guide/reference.html#LDY>
+     */
+    fn ldy(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        let value = self.mem_read(addr);
+
+        self.register_y = value;
+        self.update_zero_and_negative_flags(self.register_y);
     }
 
     /**
@@ -618,6 +649,47 @@ impl CPU {
      */
     fn clv(&mut self) {
         self.status.remove(CpuFlags::OVERFLOW);
+    }
+
+    /**
+     * CMP - Compare
+     * This instruction compares the contents of the accumulator with another memory held value and sets the zero and carry flags as appropriate.
+     * <https://www.nesdev.org/obelisk-6502-guide/reference.html#CMP>
+     */
+    fn cmp(&mut self, mode: &AddressingMode) {
+        self.compare(mode, self.register_a);
+    }
+
+    /**
+     * CPX - Compare X Register
+     * This instruction compares the contents of the X register with another memory held value and sets the zero and carry flags as appropriate.
+     * <https://www.nesdev.org/obelisk-6502-guide/reference.html#CPX>
+     */
+    fn cpx(&mut self, mode: &AddressingMode) {
+        self.compare(mode, self.register_x);
+    }
+
+    /**
+     * CPY - Compare Y Register
+     * This instruction compares the contents of the Y register with another memory held value and sets the zero and carry flags as appropriate.
+     * <https://www.nesdev.org/obelisk-6502-guide/reference.html#CPY>
+     */
+    fn cpy(&mut self, mode: &AddressingMode) {
+        self.compare(mode, self.register_y);
+    }
+
+    fn compare(&mut self, mode: &AddressingMode, register: u8) {
+        let addr = self.get_operand_address(mode);
+        let data = self.mem_read(addr);
+
+        if register >= data {
+            self.set_carry_flag();
+        } else {
+            self.clear_carry_flag();
+        }
+
+        let result = register.wrapping_sub(data);
+        self.update_zero_and_negative_flags(result);
     }
 
     fn add_to_register_a(&mut self, data: u8) {
@@ -959,6 +1031,112 @@ mod test {
         cpu.load_and_run(&vec![0xA9, 0x40, 0x69, 0x40, 0xB8, 0x00]);
 
         assert_eq!(cpu.status.contains(CpuFlags::OVERFLOW), false);
+    }
+
+    #[test]
+    fn test_compare_a_greater() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(&vec![0xA9, 0x05, 0xC9, 0x03, 0x00]);
+
+        assert_eq!(cpu.status.contains(CpuFlags::CARRY), true);
+        assert_eq!(cpu.status.contains(CpuFlags::ZERO), false);
+        assert_eq!(cpu.status.contains(CpuFlags::NEGATIVE), false);
+    }
+
+    #[test]
+    fn test_compare_a_equal() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(&vec![0xA9, 0x05, 0xC9, 0x05, 0x00]);
+
+        assert_eq!(cpu.status.contains(CpuFlags::CARRY), true);
+        assert_eq!(cpu.status.contains(CpuFlags::ZERO), true);
+        assert_eq!(cpu.status.contains(CpuFlags::NEGATIVE), false);
+    }
+
+    #[test]
+    fn test_compare_a_less() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(&vec![0xA9, 0x02, 0xC9, 0x05, 0x00]);
+
+        assert_eq!(cpu.status.contains(CpuFlags::CARRY), false);
+        assert_eq!(cpu.status.contains(CpuFlags::ZERO), false);
+        assert_eq!(cpu.status.contains(CpuFlags::NEGATIVE), true);
+    }
+
+    #[test]
+    fn test_compare_x_greater() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(&vec![0xA2, 0x05, 0xE0, 0x03, 0x00]);
+
+        assert_eq!(cpu.status.contains(CpuFlags::CARRY), true);
+        assert_eq!(cpu.status.contains(CpuFlags::ZERO), false);
+        assert_eq!(cpu.status.contains(CpuFlags::NEGATIVE), false);
+    }
+
+    #[test]
+    fn test_compare_x_equal() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(&vec![0xA2, 0x05, 0xE0, 0x05, 0x00]);
+
+        assert_eq!(cpu.status.contains(CpuFlags::CARRY), true);
+        assert_eq!(cpu.status.contains(CpuFlags::ZERO), true);
+        assert_eq!(cpu.status.contains(CpuFlags::NEGATIVE), false);
+    }
+
+    #[test]
+    fn test_compare_x_less() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(&vec![0xA2, 0x02, 0xE0, 0x05, 0x00]);
+
+        assert_eq!(cpu.status.contains(CpuFlags::CARRY), false);
+        assert_eq!(cpu.status.contains(CpuFlags::ZERO), false);
+        assert_eq!(cpu.status.contains(CpuFlags::NEGATIVE), true);
+    }
+
+    #[test]
+    fn test_compare_y_greater() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(&vec![0xA0, 0x05, 0xC0, 0x03, 0x00]);
+
+        assert_eq!(cpu.status.contains(CpuFlags::CARRY), true);
+        assert_eq!(cpu.status.contains(CpuFlags::ZERO), false);
+        assert_eq!(cpu.status.contains(CpuFlags::NEGATIVE), false);
+    }
+
+    #[test]
+    fn test_compare_y_equal() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(&vec![0xA0, 0x05, 0xC0, 0x05, 0x00]);
+
+        assert_eq!(cpu.status.contains(CpuFlags::CARRY), true);
+        assert_eq!(cpu.status.contains(CpuFlags::ZERO), true);
+        assert_eq!(cpu.status.contains(CpuFlags::NEGATIVE), false);
+    }
+
+    #[test]
+    fn test_compare_y_less() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(&vec![0xA0, 0x02, 0xC0, 0x05, 0x00]);
+
+        assert_eq!(cpu.status.contains(CpuFlags::CARRY), false);
+        assert_eq!(cpu.status.contains(CpuFlags::ZERO), false);
+        assert_eq!(cpu.status.contains(CpuFlags::NEGATIVE), true);
+    }
+
+    #[test]
+    fn test_ldx_immediate() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(&vec![0xA2, 0x33, 0x00]);
+
+        assert_eq!(cpu.register_x, 0x33);
+    }
+
+    #[test]
+    fn test_ldy_immediate() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(&vec![0xA0, 0x33, 0x00]);
+
+        assert_eq!(cpu.register_y, 0x33);
     }
 
     //#[test]

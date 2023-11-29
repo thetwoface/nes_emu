@@ -56,6 +56,18 @@ lazy_static! {
         OpCode::new(0xA1, "LDA", 2, 6, AddressingMode::IndirectX),
         OpCode::new(0xB1, "LDA", 2, 5/*+1 if page crossed*/, AddressingMode::IndirectY),
 
+        OpCode::new(0xA2, "LDX", 2, 2, AddressingMode::Immediate),
+        OpCode::new(0xA6, "LDX", 2, 3, AddressingMode::ZeroPage),
+        OpCode::new(0xB6, "LDX", 2, 4, AddressingMode::ZeroPageY),
+        OpCode::new(0xAE, "LDX", 3, 4, AddressingMode::Absolute),
+        OpCode::new(0xBE, "LDX", 3, 4/*+1 if page crossed*/, AddressingMode::AbsoluteY),
+
+        OpCode::new(0xA0, "LDY", 2, 2, AddressingMode::Immediate),
+        OpCode::new(0xA4, "LDY", 2, 3, AddressingMode::ZeroPage),
+        OpCode::new(0xB4, "LDY", 2, 4, AddressingMode::ZeroPageX),
+        OpCode::new(0xAC, "LDY", 3, 4, AddressingMode::Absolute),
+        OpCode::new(0xBC, "LDY", 3, 4/*+1 if page crossed*/, AddressingMode::AbsoluteX),
+
         OpCode::new(0x29, "AND", 2, 2, AddressingMode::Immediate),
         OpCode::new(0x25, "AND", 2, 3, AddressingMode::ZeroPage),
         OpCode::new(0x35, "AND", 2, 4, AddressingMode::ZeroPageX),
@@ -92,6 +104,23 @@ lazy_static! {
         OpCode::new(0x58, "CLI", 1, 2, AddressingMode::NoneAddressing),
         OpCode::new(0x78, "SEI", 1, 2, AddressingMode::NoneAddressing),
         OpCode::new(0xB8, "CLV", 1, 2, AddressingMode::NoneAddressing),
+
+        OpCode::new(0xC9, "CMP", 2, 2, AddressingMode::Immediate),
+        OpCode::new(0xC5, "CMP", 2, 3, AddressingMode::ZeroPage),
+        OpCode::new(0xD5, "CMP", 2, 4, AddressingMode::ZeroPageX),
+        OpCode::new(0xCD, "CMP", 3, 4, AddressingMode::Absolute),
+        OpCode::new(0xDD, "CMP", 3, 4/*+1 if page crossed*/, AddressingMode::AbsoluteX),
+        OpCode::new(0xD9, "CMP", 3, 4/*+1 if page crossed*/, AddressingMode::AbsoluteY),
+        OpCode::new(0xC1, "CMP", 2, 6, AddressingMode::IndirectX),
+        OpCode::new(0xD1, "CMP", 2, 5/*+1 if page crossed*/, AddressingMode::IndirectY),
+
+        OpCode::new(0xE0, "CPX", 2, 2, AddressingMode::Immediate),
+        OpCode::new(0xE4, "CPX", 2, 3, AddressingMode::ZeroPage),
+        OpCode::new(0xEC, "CPX", 3, 4, AddressingMode::Absolute),
+
+        OpCode::new(0xC0, "CPY", 2, 2, AddressingMode::Immediate),
+        OpCode::new(0xC4, "CPY", 2, 3, AddressingMode::ZeroPage),
+        OpCode::new(0xCC, "CPY", 3, 4, AddressingMode::Absolute),
 
         OpCode::new(0x85, "STA", 2, 3, AddressingMode::ZeroPage),
         OpCode::new(0x95, "STA", 2, 4, AddressingMode::ZeroPageX),
