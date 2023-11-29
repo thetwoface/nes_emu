@@ -77,6 +77,11 @@ lazy_static! {
         OpCode::new(0x21, "AND", 2, 6, AddressingMode::IndirectX),
         OpCode::new(0x31, "AND", 2, 5/*+1 if page crossed*/, AddressingMode::IndirectY),
 
+        OpCode::new(0xC6, "DEC", 2, 5, AddressingMode::ZeroPage),
+        OpCode::new(0xD6, "DEC", 2, 6, AddressingMode::ZeroPageX),
+        OpCode::new(0xCE, "DEC", 3, 6, AddressingMode::Absolute),
+        OpCode::new(0xDE, "DEC", 3, 7, AddressingMode::AbsoluteX),
+
         // Shifts
         OpCode::new(0x0A, "ASL", 1, 2, AddressingMode::NoneAddressing),
         OpCode::new(0x06, "ASL", 2, 5, AddressingMode::ZeroPage),

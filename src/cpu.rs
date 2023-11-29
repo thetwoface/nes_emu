@@ -220,6 +220,9 @@ impl CPU {
                 // CPY - Compare Y Register
                 0xC0 | 0xC4 | 0xCC => self.cpy(&opcode.mode),
 
+                // DEC - Decrement Memory
+                0xC6 | 0xD6 | 0xCE | 0xDE => self.dec(&opcode.mode),
+
                 0xAA => self.tax(),
 
                 0xE8 => self.inx(),
@@ -404,6 +407,21 @@ impl CPU {
     fn inx(&mut self) {
         self.register_x = self.register_x.wrapping_add(1);
         self.update_zero_and_negative_flags(self.register_x);
+    }
+
+    /**
+     * DEC - Decrement Memory
+     * Subtracts one from the value held at a specified memory location setting the zero and negative flags as appropriate.
+     * <https://www.nesdev.org/obelisk-6502-guide/reference.html#DEC>
+     */
+    fn dec(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        let data = self.mem_read(addr);
+        let result = data.wrapping_sub(1);
+
+        self.update_zero_and_negative_flags(result);
+
+        self.mem_write(addr, result);
     }
 
     /**
@@ -1137,6 +1155,18 @@ mod test {
         cpu.load_and_run(&vec![0xA0, 0x33, 0x00]);
 
         assert_eq!(cpu.register_y, 0x33);
+    }
+
+    #[test]
+    fn test_dec() {
+        let mut cpu = CPU::new();
+        cpu.mem_write(0x10, 0x55);
+
+        cpu.load_and_run(&vec![0xCE, 0x10, 0x00]);
+
+        let result = cpu.mem_read(0x10);
+
+        assert_eq!(result, 0x54);
     }
 
     //#[test]
