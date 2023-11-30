@@ -159,6 +159,12 @@ impl CPU {
                 // AND - Logical AND
                 0x29 | 0x25 | 0x35 | 0x2D | 0x3D | 0x39 | 0x21 | 0x31 => self.and(&opcode.mode),
 
+                // EOR - Exclusive OR
+                0x49 | 0x45 | 0x55 | 0x4D | 0x5D | 0x59 | 0x41 | 0x51 => self.eor(&opcode.mode),
+
+                // ORA - Logical Inclusive OR
+                0x09 | 0x05 | 0x15 | 0x0D | 0x1D | 0x19 | 0x01 | 0x11 => self.ora(&opcode.mode),
+
                 // ASL - Arithmetic Shift Left
                 0x0A => self.asl_accumulator(),
                 0x06 | 0x16 | 0x0E | 0x1E => self.asl(&opcode.mode),
@@ -498,6 +504,30 @@ impl CPU {
         let data = self.mem_read(addr);
 
         self.set_register_a(self.register_a & data);
+    }
+
+    /**
+     * EOR - Exclusive OR
+     * An exclusive OR is performed, bit by bit, on the accumulator contents using the contents of a byte of memory.
+     * <https://www.nesdev.org/obelisk-6502-guide/reference.html#EOR>
+     */
+    fn eor(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        let data = self.mem_read(addr);
+
+        self.set_register_a(self.register_a ^ data);
+    }
+
+    /**
+     * ORA - Logical Inclusive OR
+     * An inclusive OR is performed, bit by bit, on the accumulator contents using the contents of a byte of memory.
+     * <https://www.nesdev.org/obelisk-6502-guide/reference.html#ORA>
+     */
+    fn ora(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        let data = self.mem_read(addr);
+
+        self.set_register_a(self.register_a | data);
     }
 
     /**
@@ -1213,6 +1243,26 @@ mod test {
 
         assert_eq!(cpu.register_y, 0x00);
         assert_eq!(cpu.status.contains(CpuFlags::ZERO), true);
+    }
+
+    #[test]
+    fn test_exclusive_or() {
+        let mut cpu = CPU::new();
+
+        cpu.load_and_run(&vec![0xA9, 0x01, 0x49, 0x01, 0x00]);
+
+        assert_eq!(cpu.register_a, 0x00);
+        assert_eq!(cpu.status.contains(CpuFlags::ZERO), true);
+    }
+
+    #[test]
+    fn test_logical_inclusive_or() {
+        let mut cpu = CPU::new();
+
+        cpu.load_and_run(&vec![0xA9, 0x01, 0x09, 0x10, 0x00]);
+
+        assert_eq!(cpu.register_a, 0x11);
+        assert_eq!(cpu.status.contains(CpuFlags::ZERO), false);
     }
 
     //#[test]
