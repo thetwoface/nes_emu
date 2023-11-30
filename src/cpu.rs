@@ -223,6 +223,12 @@ impl CPU {
                 // DEC - Decrement Memory
                 0xC6 | 0xD6 | 0xCE | 0xDE => self.dec(&opcode.mode),
 
+                // DEX - Decrement X Register
+                0xCA => self.dex(),
+
+                // DEY - Decrement Y Register
+                0x88 => self.dey(),
+
                 0xAA => self.tax(),
 
                 0xE8 => self.inx(),
@@ -422,6 +428,26 @@ impl CPU {
         self.update_zero_and_negative_flags(result);
 
         self.mem_write(addr, result);
+    }
+
+    /**
+     * DEX - Decrement X Register
+     * Subtracts one from the X register setting the zero and negative flags as appropriate.
+     * <https://www.nesdev.org/obelisk-6502-guide/reference.html#DEX>
+     */
+    fn dex(&mut self) {
+        self.register_x = self.register_x.wrapping_sub(1);
+        self.update_zero_and_negative_flags(self.register_x);
+    }
+
+    /**
+     * DEY - Decrement Y Register
+     * Subtracts one from the Y register setting the zero and negative flags as appropriate.
+     * <https://www.nesdev.org/obelisk-6502-guide/reference.html#DEY>
+     */
+    fn dey(&mut self) {
+        self.register_y = self.register_y.wrapping_sub(1);
+        self.update_zero_and_negative_flags(self.register_y);
     }
 
     /**
@@ -1167,6 +1193,26 @@ mod test {
         let result = cpu.mem_read(0x10);
 
         assert_eq!(result, 0x54);
+    }
+
+    #[test]
+    fn test_dex() {
+        let mut cpu = CPU::new();
+
+        cpu.load_and_run(&vec![0xA2, 0x01, 0xCA, 0x00]);
+
+        assert_eq!(cpu.register_x, 0x00);
+        assert_eq!(cpu.status.contains(CpuFlags::ZERO), true);
+    }
+
+    #[test]
+    fn test_dey() {
+        let mut cpu = CPU::new();
+
+        cpu.load_and_run(&vec![0xA0, 0x01, 0x88, 0x00]);
+
+        assert_eq!(cpu.register_y, 0x00);
+        assert_eq!(cpu.status.contains(CpuFlags::ZERO), true);
     }
 
     //#[test]

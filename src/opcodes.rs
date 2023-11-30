@@ -82,6 +82,10 @@ lazy_static! {
         OpCode::new(0xCE, "DEC", 3, 6, AddressingMode::Absolute),
         OpCode::new(0xDE, "DEC", 3, 7, AddressingMode::AbsoluteX),
 
+        OpCode::new(0xCA, "DEX", 1, 2, AddressingMode::NoneAddressing),
+
+        OpCode::new(0x88, "DEY", 1, 2, AddressingMode::NoneAddressing),
+
         // Shifts
         OpCode::new(0x0A, "ASL", 1, 2, AddressingMode::NoneAddressing),
         OpCode::new(0x06, "ASL", 2, 5, AddressingMode::ZeroPage),
