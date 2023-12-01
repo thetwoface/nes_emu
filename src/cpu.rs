@@ -246,6 +246,11 @@ impl CPU {
                 // INC - Increment Memory
                 0xE6 | 0xF6 | 0xEE | 0xFE => self.inc(&opcode.mode),
 
+                // JMP - Jump Absolute
+                0x4C => self.jmp_absolute(),
+                // JMP - Jump Indirect
+                0x6C => self.jmp_indirect(),
+
                 // BRK - Force Interrupt
                 // https://www.nesdev.org/obelisk-6502-guide/reference.html#BRK
                 0x00 => {
@@ -782,6 +787,40 @@ impl CPU {
      */
     fn cpy(&mut self, mode: &AddressingMode) {
         self.compare(mode, self.register_y);
+    }
+
+    /**
+     * JMP - Jump
+     * Sets the program counter to the address specified by the operand.
+     * <https://www.nesdev.org/obelisk-6502-guide/reference.html#JMP>
+     */
+    fn jmp_absolute(&mut self) {
+        let mem_address = self.mem_read_u16(self.program_counter);
+
+        self.program_counter = mem_address;
+    }
+
+    /**
+     * An original 6502 has does not correctly fetch the target address if the indirect vector falls on a page boundary (e.g. $`xxFF` where xx is any value from $`00` to `$FF`).
+     * In this case fetches the LSB from $`xxFF` as expected but takes the MSB from `$xx00`.
+     * This is fixed in some later chips like the 65SC02 so for compatibility always ensure the indirect vector is not at the end of the page.
+     */
+    fn jmp_indirect(&mut self) {
+        let mem_address = self.mem_read_u16(self.program_counter);
+
+        // 6502 bug mode with with page boundary:
+        // if address $3000 contains $40, $30FF contains $80, and $3100 contains $50,
+        // the result of JMP ($30FF) will be a transfer of control to $4080 rather than $5080 as you intended
+        // i.e. the 6502 took the low byte of the address from $30FF and the high byte from $3000
+        let indirect_ref = if mem_address & 0x00FF == 0x00FF {
+            let lo = self.mem_read(mem_address);
+            let hi = self.mem_read(mem_address & 0xFF00);
+            (u16::from(hi)) << 8 | u16::from(lo)
+        } else {
+            self.mem_read_u16(mem_address)
+        };
+
+        self.program_counter = indirect_ref;
     }
 
     fn compare(&mut self, mode: &AddressingMode, register: u8) {
@@ -1334,6 +1373,29 @@ mod test {
         assert_eq!(cpu.status.contains(CpuFlags::OVERFLOW), false);
         assert_eq!(cpu.status.contains(CpuFlags::CARRY), false);
     }
+
+    //#[test]
+    //fn test_jump_absolute() {
+    //    let mut cpu = CPU::new();
+    //
+    //    cpu.load_and_run(&vec![0x4C, 0x30, 0xFF]);
+    //
+    //    assert_eq!(cpu.program_counter, 0xFF30);
+    //}
+
+    /*#[test]
+    fn test_jump_indirect_bug() {
+        let mut cpu = CPU::new();
+
+        cpu.mem_write(0x3000, 0x40);
+        cpu.mem_write(0x30FF, 0x80);
+        cpu.mem_write(0x3100, 0x50);
+
+        // JMP ($30FF)
+        cpu.load_and_run(&vec![0x6C, 0xFF, 0x30]);
+
+        assert_eq!(cpu.program_counter, 0x4080);
+    }*/
 
     //#[test]
     //fn test_bit_test() {
