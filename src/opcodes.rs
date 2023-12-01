@@ -26,7 +26,15 @@ lazy_static! {
     pub static ref CPU_OPS_CODES: Vec<OpCode> = vec![
         OpCode::new(0x00, "BRK", 1, 7, AddressingMode::NoneAddressing),
         OpCode::new(0xAA, "TAX", 1, 2, AddressingMode::NoneAddressing),
+
         OpCode::new(0xE8, "INX", 1, 2, AddressingMode::NoneAddressing),
+
+        OpCode::new(0xC8, "INY", 1, 2, AddressingMode::NoneAddressing),
+
+        OpCode::new(0xE6, "INC", 2, 5, AddressingMode::ZeroPage),
+        OpCode::new(0xF6, "INC", 2, 6, AddressingMode::ZeroPageX),
+        OpCode::new(0xEE, "INC", 3, 6, AddressingMode::Absolute),
+        OpCode::new(0xFE, "INC", 3, 7, AddressingMode::AbsoluteX),
 
         // Arithmetic
         OpCode::new(0x69, "ADC", 2, 2, AddressingMode::Immediate),

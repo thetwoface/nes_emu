@@ -237,7 +237,14 @@ impl CPU {
 
                 0xAA => self.tax(),
 
+                // INX - Increment X Register
                 0xE8 => self.inx(),
+
+                // INY - Increment Y Register
+                0xC8 => self.iny(),
+
+                // INC - Increment Memory
+                0xE6 | 0xF6 | 0xEE | 0xFE => self.inc(&opcode.mode),
 
                 // BRK - Force Interrupt
                 // https://www.nesdev.org/obelisk-6502-guide/reference.html#BRK
@@ -419,6 +426,31 @@ impl CPU {
     fn inx(&mut self) {
         self.register_x = self.register_x.wrapping_add(1);
         self.update_zero_and_negative_flags(self.register_x);
+    }
+
+    /**
+     * INY - Increment Y Register
+     * Adds one to the Y register setting the zero and negative flags as appropriate.
+     * <https://www.nesdev.org/obelisk-6502-guide/reference.html#INY>
+     */
+    fn iny(&mut self) {
+        self.register_y = self.register_y.wrapping_add(1);
+        self.update_zero_and_negative_flags(self.register_y);
+    }
+
+    /**
+     * INC - Increment Memory
+     * Adds one to the value held at a specified memory location setting the zero and negative flags as appropriate.
+     * <https://www.nesdev.org/obelisk-6502-guide/reference.html#INC>
+     */
+    fn inc(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        let data = self.mem_read(addr);
+        let result = data.wrapping_add(1);
+
+        self.update_zero_and_negative_flags(result);
+
+        self.mem_write(addr, result);
     }
 
     /**
@@ -1263,6 +1295,44 @@ mod test {
 
         assert_eq!(cpu.register_a, 0x11);
         assert_eq!(cpu.status.contains(CpuFlags::ZERO), false);
+    }
+
+    #[test]
+    fn test_increment_memory() {
+        let mut cpu = CPU::new();
+
+        cpu.mem_write(0x10, 0x55);
+
+        cpu.load_and_run(&vec![0xE6, 0x10, 0x00]);
+
+        let result = cpu.mem_read(0x10);
+
+        assert_eq!(result, 0x56);
+        assert_eq!(cpu.status.contains(CpuFlags::ZERO), false);
+    }
+
+    #[test]
+    fn test_increment_y() {
+        let mut cpu = CPU::new();
+
+        cpu.load_and_run(&vec![0xA0, 0x01, 0xC8, 0x00]);
+
+        assert_eq!(cpu.register_y, 0x02);
+        assert_eq!(cpu.status.contains(CpuFlags::ZERO), false);
+        assert_eq!(cpu.status.contains(CpuFlags::NEGATIVE), false);
+    }
+
+    #[test]
+    fn test_increment_y_overflow() {
+        let mut cpu = CPU::new();
+
+        cpu.load_and_run(&vec![0xA0, 0xFF, 0xC8, 0x00]);
+
+        assert_eq!(cpu.register_y, 0x00);
+        assert_eq!(cpu.status.contains(CpuFlags::ZERO), true);
+        assert_eq!(cpu.status.contains(CpuFlags::NEGATIVE), false);
+        assert_eq!(cpu.status.contains(CpuFlags::OVERFLOW), false);
+        assert_eq!(cpu.status.contains(CpuFlags::CARRY), false);
     }
 
     //#[test]
