@@ -169,6 +169,18 @@ impl CPU {
                 0x0A => self.asl_accumulator(),
                 0x06 | 0x16 | 0x0E | 0x1E => self.asl(&opcode.mode),
 
+                // LSR - Logical Shift Right
+                0x4A => self.lsr_accumulator(),
+                0x46 | 0x56 | 0x4E | 0x5E => self.lsr(&opcode.mode),
+
+                // ROL - Rotate Left
+                0x2A => self.rol_accumulator(),
+                0x26 | 0x36 | 0x2E | 0x3E => self.rol(&opcode.mode),
+
+                // ROR - Rotate Right
+                0x6A => self.ror_accumulator(),
+                0x66 | 0x76 | 0x6E | 0x7E => self.ror(&opcode.mode),
+
                 // BCC - Branch if Carry Clear
                 0x90 => self.bcc(),
 
@@ -606,6 +618,139 @@ impl CPU {
         }
 
         data <<= 1;
+        self.set_register_a(data);
+    }
+
+    /**
+     * LSR - Logical Shift Right
+     * A,C,Z,N = A/2 or M,C,Z,N = M/2
+     * Each of the bits in A or M is shift one place to the right.
+     * The bit that was in bit 0 is shifted into the carry flag.
+     * Bit 7 is set to zero.
+     */
+    fn lsr(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        let mut data = self.mem_read(addr);
+
+        if data & 1 == 1 {
+            self.set_carry_flag();
+        } else {
+            self.clear_carry_flag();
+        }
+
+        data >>= 1;
+
+        self.mem_write(addr, data);
+        self.update_zero_and_negative_flags(data);
+    }
+
+    fn lsr_accumulator(&mut self) {
+        let mut data = self.register_a;
+
+        if data & 1 == 1 {
+            self.set_carry_flag();
+        } else {
+            self.clear_carry_flag();
+        }
+
+        data >>= 1;
+
+        self.set_register_a(data);
+    }
+
+    /**
+     * ROL - Rotate Left
+     * Move each of the bits in either A or M one place to the left.
+     * Bit 0 is filled with the current value of the carry flag whilst the old bit 7 becomes the new carry flag value.
+     * <https://www.nesdev.org/obelisk-6502-guide/reference.html#ROL>
+     */
+    fn rol(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        let mut data = self.mem_read(addr);
+
+        let carry_status = self.status.contains(CpuFlags::CARRY);
+
+        // the old bit 7 becomes the new carry flag value
+        if data >> 7 == 1 {
+            self.set_carry_flag();
+        } else {
+            self.clear_carry_flag();
+        }
+
+        data <<= 1;
+
+        // Bit 0 is filled with the current value of the carry flag
+        if carry_status {
+            data |= 1;
+        }
+
+        self.mem_write(addr, data);
+        self.update_zero_and_negative_flags(data);
+    }
+
+    fn rol_accumulator(&mut self) {
+        let mut data = self.register_a;
+
+        let carry_status = self.status.contains(CpuFlags::CARRY);
+
+        // the old bit 7 becomes the new carry flag value
+        if data >> 7 == 1 {
+            self.set_carry_flag();
+        } else {
+            self.clear_carry_flag();
+        }
+
+        data <<= 1;
+
+        // Bit 0 is filled with the current value of the carry flag
+        if carry_status {
+            data |= 1;
+        }
+
+        self.set_register_a(data);
+    }
+
+    /**
+     * ROR - Rotate Right
+     * Move each of the bits in either A or M one place to the right.
+     * Bit 7 is filled with the current value of the carry flag whilst the old bit 0 becomes the new carry flag value.
+     * <https://www.nesdev.org/obelisk-6502-guide/reference.html#ROR>
+     */
+    fn ror(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        let mut data = self.mem_read(addr);
+
+        let carry_status = self.status.contains(CpuFlags::CARRY);
+
+        if data & 1 == 1 {
+            self.set_carry_flag();
+        } else {
+            self.clear_carry_flag();
+        }
+        data >>= 1;
+        if carry_status {
+            data |= 0b1000_0000;
+        }
+
+        self.mem_write(addr, data);
+        self.update_zero_and_negative_flags(data);
+    }
+
+    fn ror_accumulator(&mut self) {
+        let mut data = self.register_a;
+
+        let carry_status = self.status.contains(CpuFlags::CARRY);
+
+        if data & 1 == 1 {
+            self.set_carry_flag();
+        } else {
+            self.clear_carry_flag();
+        }
+        data >>= 1;
+        if carry_status {
+            data |= 0b1000_0000;
+        }
+
         self.set_register_a(data);
     }
 
@@ -1083,6 +1228,39 @@ mod test {
         assert_eq!(cpu.status.contains(CpuFlags::NEGATIVE), false);
         assert_eq!(cpu.status.contains(CpuFlags::ZERO), false);
         assert_eq!(cpu.status.contains(CpuFlags::CARRY), false);
+    }
+
+    #[test]
+    fn test_lsr() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(&vec![0xA9, 0x01, 0x4A, 0x00]);
+
+        assert_eq!(cpu.register_a, 0x00);
+        assert_eq!(cpu.status.contains(CpuFlags::NEGATIVE), false);
+        assert_eq!(cpu.status.contains(CpuFlags::ZERO), true);
+        assert_eq!(cpu.status.contains(CpuFlags::CARRY), true);
+    }
+
+    #[test]
+    fn test_rol() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(&vec![0xA9, 0xF0, 0x2A, 0x00]);
+
+        assert_eq!(cpu.register_a, 0xE0);
+        assert_eq!(cpu.status.contains(CpuFlags::NEGATIVE), true);
+        assert_eq!(cpu.status.contains(CpuFlags::ZERO), false);
+        assert_eq!(cpu.status.contains(CpuFlags::CARRY), true);
+    }
+
+    #[test]
+    fn test_ror() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(&vec![0xA9, 0x01, 0x6A, 0x00]);
+
+        assert_eq!(cpu.register_a, 0x00);
+        assert_eq!(cpu.status.contains(CpuFlags::NEGATIVE), false);
+        assert_eq!(cpu.status.contains(CpuFlags::ZERO), true);
+        assert_eq!(cpu.status.contains(CpuFlags::CARRY), true);
     }
 
     #[test]
