@@ -15,6 +15,8 @@ bitflags! {
     ///  | +--------------- Overflow Flag
     ///  +----------------- Negative Flag
     ///
+    #[repr(transparent)]
+    #[derive(Clone)]
     pub struct CpuFlags:u8{
         const CARRY             = 0b0000_0001;
         const ZERO              = 0b0000_0010;
@@ -269,11 +271,29 @@ impl CPU {
                 // RTS - Return from Subroutine
                 0x60 => self.rts(),
 
+                // PHA - Push Accumulator
+                0x48 => self.pha(),
+
+                // PLA - Pull Accumulator
+                0x68 => self.pla(),
+
+                // PHP - Push Processor Status
+                0x08 => self.php(),
+
+                // PLP - Pull Processor Status
+                0x28 => self.plp(),
+
                 // BRK - Force Interrupt
                 // https://www.nesdev.org/obelisk-6502-guide/reference.html#BRK
                 0x00 => {
                     self.brk();
                     return;
+                }
+
+                // NOP - No Operation
+                0xEA => {
+                    // The NOP instruction causes no changes to the processor
+                    // other than the normal incrementing of the program counter to the next instruction.
                 }
 
                 _ => todo!(""),
@@ -997,6 +1017,50 @@ impl CPU {
         self.program_counter = self.stack_pop_u16() + 1;
     }
 
+    /**
+     * PHA - Push Accumulator
+     * Pushes a copy of the accumulator on to the stack.
+     * <https://www.nesdev.org/obelisk-6502-guide/reference.html#PHA>
+     */
+    fn pha(&mut self) {
+        self.stack_push(self.register_a);
+    }
+
+    /**
+     * PLA - Pull Accumulator
+     * Pulls an 8 bit value from the stack and into the accumulator.
+     * The zero and negative flags are set as appropriate.
+     * <https://www.nesdev.org/obelisk-6502-guide/reference.html#PLA>
+     */
+    fn pla(&mut self) {
+        let data = self.stack_pop();
+        self.set_register_a(data);
+    }
+
+    /**
+     * PHP - Push Processor Status
+     * Pushes a copy of the status flags on to the stack.
+     * <https://www.nesdev.org/obelisk-6502-guide/reference.html#PHP>
+     */
+    fn php(&mut self) {
+        let mut flags = self.status.clone();
+        flags.insert(CpuFlags::BREAK);
+        flags.insert(CpuFlags::BREAK2);
+        self.stack_push(flags.bits());
+    }
+
+    /**
+     * PLP - Pull Processor Status
+     * Pulls an 8 bit value from the stack and into the processor flags.
+     * The flags will take on new states as determined by the value pulled.
+     * <https://www.nesdev.org/obelisk-6502-guide/reference.html#PLP>
+     */
+    fn plp(&mut self) {
+        self.status = CpuFlags::from_bits_truncate(self.stack_pop());
+        self.status.remove(CpuFlags::BREAK);
+        self.status.insert(CpuFlags::BREAK2);
+    }
+
     fn compare(&mut self, mode: &AddressingMode, register: u8) {
         let addr = self.get_operand_address(mode);
         let data = self.mem_read(addr);
@@ -1577,6 +1641,19 @@ mod test {
         assert_eq!(cpu.register_y, 0x00);
         assert_eq!(cpu.status.contains(CpuFlags::ZERO), true);
         assert_eq!(cpu.status.contains(CpuFlags::NEGATIVE), false);
+        assert_eq!(cpu.status.contains(CpuFlags::OVERFLOW), false);
+        assert_eq!(cpu.status.contains(CpuFlags::CARRY), false);
+    }
+
+    #[test]
+    fn test_stack_accumulator() {
+        let mut cpu = CPU::new();
+
+        cpu.load_and_run(&vec![0xA9, 0xFF, 0x48, 0xA9, 0x33, 0x68, 0x00]);
+
+        assert_eq!(cpu.register_a, 0xFF);
+        assert_eq!(cpu.status.contains(CpuFlags::ZERO), false);
+        assert_eq!(cpu.status.contains(CpuFlags::NEGATIVE), true);
         assert_eq!(cpu.status.contains(CpuFlags::OVERFLOW), false);
         assert_eq!(cpu.status.contains(CpuFlags::CARRY), false);
     }

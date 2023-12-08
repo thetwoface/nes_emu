@@ -32,7 +32,13 @@ lazy_static! {
         OpCode::new(0x20, "RTS", 1, 6, AddressingMode::NoneAddressing), // Implied
 
         OpCode::new(0x00, "BRK", 1, 7, AddressingMode::NoneAddressing),
+        OpCode::new(0xEA, "NOP", 1, 2, AddressingMode::NoneAddressing), // Implied
         OpCode::new(0xAA, "TAX", 1, 2, AddressingMode::NoneAddressing),
+
+        OpCode::new(0x48, "PHA", 1, 3, AddressingMode::NoneAddressing), // Implied
+        OpCode::new(0x68, "PLA", 1, 4, AddressingMode::NoneAddressing), // Implied
+        OpCode::new(0x08, "PHP", 1, 3, AddressingMode::NoneAddressing), // Implied
+        OpCode::new(0x28, "PLP", 1, 4, AddressingMode::NoneAddressing), // Implied
 
         OpCode::new(0xE8, "INX", 1, 2, AddressingMode::NoneAddressing),
 
