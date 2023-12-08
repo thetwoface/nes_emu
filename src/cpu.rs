@@ -152,6 +152,12 @@ impl CPU {
                 // STA - Store Accumulator
                 0x85 | 0x95 | 0x8d | 0x9d | 0x99 | 0x81 | 0x91 => self.sta(&opcode.mode),
 
+                // STX - Store X Register
+                0x86 | 0x96 | 0x8E => self.stx(&opcode.mode),
+
+                // STY - Store Y Register
+                0x84 | 0x94 | 0x8C => self.sty(&opcode.mode),
+
                 // ADC - Add with Carry
                 0x69 | 0x65 | 0x75 | 0x6D | 0x7D | 0x79 | 0x61 | 71 => self.adc(&opcode.mode),
 
@@ -249,7 +255,23 @@ impl CPU {
                 // DEY - Decrement Y Register
                 0x88 => self.dey(),
 
+                // TAX - Transfer Accumulator to X
                 0xAA => self.tax(),
+
+                // TAY - Transfer Accumulator to Y
+                0xA8 => self.tay(),
+
+                // TSX - Transfer Stack Pointer to X
+                0xBA => self.tsx(),
+
+                // TXA - Transfer X to Accumulator
+                0x8A => self.txa(),
+
+                // TYA - Transfer Y to Accumulator
+                0x98 => self.tya(),
+
+                // TXS - Transfer X to Stack Pointer
+                0x9A => self.txs(),
 
                 // INX - Increment X Register
                 0xE8 => self.inx(),
@@ -282,6 +304,9 @@ impl CPU {
 
                 // PLP - Pull Processor Status
                 0x28 => self.plp(),
+
+                // RTI - Return from Interrupt
+                0x40 => self.rti(),
 
                 // BRK - Force Interrupt
                 // https://www.nesdev.org/obelisk-6502-guide/reference.html#BRK
@@ -462,6 +487,55 @@ impl CPU {
     }
 
     /**
+     * TAY - Transfer Accumulator to Y
+     * Copies the current contents of the accumulator into the Y register and sets the zero and negative flags as appropriate.
+     * <https://www.nesdev.org/obelisk-6502-guide/reference.html#TAY>
+     */
+    fn tay(&mut self) {
+        self.register_y = self.register_a;
+        self.update_zero_and_negative_flags(self.register_y);
+    }
+
+    /**
+     * TSX - Transfer Stack Pointer to X
+     * Copies the current contents of the stack register into the X register and sets the zero and negative flags as appropriate.
+     * <https://www.nesdev.org/obelisk-6502-guide/reference.html#TSX>
+     */
+    fn tsx(&mut self) {
+        self.register_x = self.stack_pointer;
+        self.update_zero_and_negative_flags(self.register_x);
+    }
+
+    /**
+     * TXA - Transfer X to Accumulator
+     * Copies the current contents of the X register into the accumulator and sets the zero and negative flags as appropriate.
+     * <https://www.nesdev.org/obelisk-6502-guide/reference.html#TXA>
+     */
+    fn txa(&mut self) {
+        self.register_a = self.register_x;
+        self.update_zero_and_negative_flags(self.register_a);
+    }
+
+    /**
+     * TYA - Transfer Y to Accumulator
+     * Copies the current contents of the Y register into the accumulator and sets the zero and negative flags as appropriate.
+     * <https://www.nesdev.org/obelisk-6502-guide/reference.html#TYA>
+     */
+    fn tya(&mut self) {
+        self.register_a = self.register_y;
+        self.update_zero_and_negative_flags(self.register_a);
+    }
+
+    /**
+     * TXS - Transfer X to Stack Pointer
+     * Copies the current contents of the X register into the stack register.
+     * <https://www.nesdev.org/obelisk-6502-guide/reference.html#TXS>
+     */
+    fn txs(&mut self) {
+        self.stack_pointer = self.register_x;
+    }
+
+    /**
      * INX - Increment X Register
      * Adds one to the X register setting the zero and negative flags as appropriate.
      * <https://www.nesdev.org/obelisk-6502-guide/reference.html#INX>
@@ -539,6 +613,26 @@ impl CPU {
     fn sta(&mut self, mode: &AddressingMode) {
         let addr = self.get_operand_address(mode);
         self.mem_write(addr, self.register_a);
+    }
+
+    /**
+     * STX - Store X Register
+     * Stores the contents of the X register into memory.
+     * <https://www.nesdev.org/obelisk-6502-guide/reference.html#STX>
+     */
+    fn stx(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        self.mem_write(addr, self.register_x);
+    }
+
+    /**
+     * STY - Store Y Register
+     * Stores the contents of the Y register into memory.
+     * <https://www.nesdev.org/obelisk-6502-guide/reference.html#STY>
+     */
+    fn sty(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        self.mem_write(addr, self.register_y);
     }
 
     /**
@@ -1059,6 +1153,20 @@ impl CPU {
         self.status = CpuFlags::from_bits_truncate(self.stack_pop());
         self.status.remove(CpuFlags::BREAK);
         self.status.insert(CpuFlags::BREAK2);
+    }
+
+    /**
+     * RTI - Return from Interrupt
+     * The RTI instruction is used at the end of an interrupt processing routine.
+     * It pulls the processor flags from the stack followed by the program counter.
+     * <https://www.nesdev.org/obelisk-6502-guide/reference.html#RTI>
+     */
+    fn rti(&mut self) {
+        self.status = CpuFlags::from_bits_truncate(self.stack_pop());
+        self.status.remove(CpuFlags::BREAK);
+        self.status.insert(CpuFlags::BREAK2);
+
+        self.program_counter = self.stack_pop_u16();
     }
 
     fn compare(&mut self, mode: &AddressingMode, register: u8) {
