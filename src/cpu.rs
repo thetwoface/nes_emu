@@ -251,6 +251,12 @@ impl CPU {
                 // JMP - Jump Indirect
                 0x6C => self.jmp_indirect(),
 
+                // JSR - Jump to Subroutine
+                0x20 => self.jsr(&opcode.mode),
+
+                // RTS - Return from Subroutine
+                0x60 => self.rts(),
+
                 // BRK - Force Interrupt
                 // https://www.nesdev.org/obelisk-6502-guide/reference.html#BRK
                 0x00 => {
@@ -821,6 +827,29 @@ impl CPU {
         };
 
         self.program_counter = indirect_ref;
+    }
+
+    /**
+     * JSR - Jump to Subroutine
+     * The JSR instruction pushes the address (minus one) of the return point on to the stack and then sets the program counter to the target memory address.
+     * <https://www.nesdev.org/obelisk-6502-guide/reference.html#JSR>
+     */
+    fn jsr(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        let target_adress = self.mem_read_u16(addr);
+
+        self.stack_push_u16(self.program_counter + 2 - 1);
+
+        self.program_counter = target_adress;
+    }
+
+    /**
+     * RTS - Return from Subroutine
+     * The RTS instruction is used at the end of a subroutine to return to the calling routine. It pulls the program counter (minus one) from the stack.
+     * <https://www.nesdev.org/obelisk-6502-guide/reference.html#RTS>
+     */
+    fn rts(&mut self) {
+        self.program_counter = self.stack_pop_u16() + 1;
     }
 
     fn compare(&mut self, mode: &AddressingMode, register: u8) {
