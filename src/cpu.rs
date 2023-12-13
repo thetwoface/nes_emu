@@ -44,7 +44,7 @@ pub enum AddressingMode {
 }
 
 const STACK_ADDR: u16 = 0x0100;
-const STACK_RESET: u8 = 0xfd;
+const STACK_RESET: u8 = 0xFD;
 
 #[must_use]
 pub struct CPU {
@@ -57,7 +57,7 @@ pub struct CPU {
     pub memory: [u8; 0xFFFF + 1], // from 0x0000 to 0xFFFF
 }
 
-trait Mem {
+pub trait Mem {
     fn mem_read(&self, addr: u16) -> u8;
 
     fn mem_write(&mut self, addr: u16, data: u8);
@@ -118,14 +118,21 @@ impl CPU {
     }
 
     pub fn load(&mut self, program: &[u8]) {
-        self.memory[0x8000..(0x8000 + program.len())].copy_from_slice(program);
-        self.mem_write_u16(0xFFFC, 0x8000);
+        self.memory[0x0600..(0x0600 + program.len())].copy_from_slice(program);
+        self.mem_write_u16(0xFFFC, 0x0600);
+    }
+
+    pub fn run(&mut self) {
+        self.run_with_callback(|_| {});
     }
 
     /// # Panics
     ///
     /// Will panic if opcode is not recognized
-    pub fn run(&mut self) {
+    pub fn run_with_callback<F>(&mut self, mut callback: F)
+    where
+        F: FnMut(&mut CPU),
+    {
         let opcodes: &HashMap<u8, &'static opcodes::OpCode> = &opcodes::OPCODES_MAP;
 
         loop {
@@ -288,7 +295,7 @@ impl CPU {
                 0x6C => self.jmp_indirect(),
 
                 // JSR - Jump to Subroutine
-                0x20 => self.jsr(&opcode.mode),
+                0x20 => self.jsr(),
 
                 // RTS - Return from Subroutine
                 0x60 => self.rts(),
@@ -327,6 +334,8 @@ impl CPU {
             if program_counter_state == self.program_counter {
                 self.program_counter += u16::from(opcode.len - 1);
             }
+
+            callback(self);
         }
     }
 
@@ -1093,13 +1102,10 @@ impl CPU {
      * The JSR instruction pushes the address (minus one) of the return point on to the stack and then sets the program counter to the target memory address.
      * <https://www.nesdev.org/obelisk-6502-guide/reference.html#JSR>
      */
-    fn jsr(&mut self, mode: &AddressingMode) {
-        let addr = self.get_operand_address(mode);
-        let target_adress = self.mem_read_u16(addr);
-
+    fn jsr(&mut self) {
         self.stack_push_u16(self.program_counter + 2 - 1);
-
-        self.program_counter = target_adress;
+        let target_address = self.mem_read_u16(self.program_counter);
+        self.program_counter = target_address;
     }
 
     /**
