@@ -4,10 +4,11 @@
 extern crate sdl2;
 //https://blog.logrocket.com/using-sdl2-bindings-rust/
 
+pub mod bus;
 pub mod cpu;
 pub mod opcodes;
-use std::time::Duration;
 
+use bus::Bus;
 use cpu::Mem;
 use cpu::CPU;
 use rand::Rng;
@@ -16,6 +17,7 @@ use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
 use sdl2::pixels::PixelFormatEnum;
 use sdl2::EventPump;
+use std::time::Duration;
 
 #[macro_use]
 extern crate lazy_static;
@@ -141,7 +143,8 @@ fn main() -> Result<(), String> {
     ];
 
     //load the game
-    let mut cpu = CPU::new();
+    let bus = Bus::new();
+    let mut cpu = CPU::new(bus);
     cpu.load(&game_code);
     cpu.reset();
 
