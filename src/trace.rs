@@ -4,6 +4,11 @@ use crate::cpu::CPU;
 use crate::opcodes;
 use std::collections::HashMap;
 
+/// # Panics
+///
+/// May panic if opcode is not recognized
+#[allow(clippy::too_many_lines)]
+#[must_use]
 pub fn trace(cpu: &CPU) -> String {
     let opcodes: &HashMap<u8, &'static opcodes::OpCode> = &opcodes::OPCODES_MAP;
 
@@ -24,24 +29,22 @@ pub fn trace(cpu: &CPU) -> String {
 
     let tmp = match opcode.len {
         1 => match opcode.code {
-            0x0A | 0x4A | 0x2A | 0x6A => format!("A "),
-            _ => String::from(""),
+            0x0A | 0x4A | 0x2A | 0x6A => "A ".to_string(),
+            _ => String::new(),
         },
         2 => {
             let address = cpu.mem_read(begin + 1);
             hex_dump.push(address);
 
             match opcode.mode {
-                AddressingMode::Immediate => format!("#${:02x}", address),
-                AddressingMode::ZeroPage => format!("${:02x} = {:02x}", mem_addr, stored_value),
-                AddressingMode::ZeroPageX => format!(
-                    "${:02x},X @ {:02x} = {:02x}",
-                    address, mem_addr, stored_value
-                ),
-                AddressingMode::ZeroPageY => format!(
-                    "${:02x},Y @ {:02x} = {:02x}",
-                    address, mem_addr, stored_value
-                ),
+                AddressingMode::Immediate => format!("#${address:02x}"),
+                AddressingMode::ZeroPage => format!("${mem_addr:02x} = {stored_value:02x}"),
+                AddressingMode::ZeroPageX => {
+                    format!("${address:02x},X @ {mem_addr:02x} = {stored_value:02x}")
+                }
+                AddressingMode::ZeroPageY => {
+                    format!("${address:02x},Y @ {mem_addr:02x} = {stored_value:02x}")
+                }
                 AddressingMode::IndirectX => format!(
                     "(${:02x},X) @ {:02x} = {:04x} = {:02x}",
                     address,
@@ -52,15 +55,16 @@ pub fn trace(cpu: &CPU) -> String {
                 AddressingMode::IndirectY => format!(
                     "(${:02x}),Y = {:04x} @ {:04x} = {:02x}",
                     address,
-                    (mem_addr.wrapping_sub(cpu.register_y as u16)),
+                    (mem_addr.wrapping_sub(u16::from(cpu.register_y))),
                     mem_addr,
                     stored_value
                 ),
                 AddressingMode::NoneAddressing => {
                     // assuming local jumps: BNE, BVS, etc....
+                    #[allow(clippy::cast_sign_loss, clippy::cast_possible_wrap)]
                     let address: usize =
                         (begin as usize + 2).wrapping_add((address as i8) as usize);
-                    format!("${:04x}", address)
+                    format!("${address:04x}")
                 }
 
                 _ => panic!(
@@ -84,38 +88,36 @@ pub fn trace(cpu: &CPU) -> String {
                         let jmp_addr = if address & 0x00FF == 0x00FF {
                             let lo = cpu.mem_read(address);
                             let hi = cpu.mem_read(address & 0xFF00);
-                            (hi as u16) << 8 | (lo as u16)
+                            u16::from(hi) << 8 | u16::from(lo)
                         } else {
                             cpu.mem_read_u16(address)
                         };
 
                         // let jmp_addr = cpu.mem_read_u16(address);
-                        format!("(${:04x}) = {:04x}", address, jmp_addr)
+                        format!("(${address:04x}) = {jmp_addr:04x}")
                     } else {
-                        format!("${:04x}", address)
+                        format!("${address:04x}")
                     }
                 }
-                AddressingMode::Absolute => format!("${:04x} = {:02x}", mem_addr, stored_value),
-                AddressingMode::AbsoluteX => format!(
-                    "${:04x},X @ {:04x} = {:02x}",
-                    address, mem_addr, stored_value
-                ),
-                AddressingMode::AbsoluteY => format!(
-                    "${:04x},Y @ {:04x} = {:02x}",
-                    address, mem_addr, stored_value
-                ),
+                AddressingMode::Absolute => format!("${mem_addr:04x} = {stored_value:02x}"),
+                AddressingMode::AbsoluteX => {
+                    format!("${address:04x},X @ {mem_addr:04x} = {stored_value:02x}")
+                }
+                AddressingMode::AbsoluteY => {
+                    format!("${address:04x},Y @ {mem_addr:04x} = {stored_value:02x}")
+                }
                 _ => panic!(
                     "unexpected addressing mode {:?} has ops-len 3. code {:02x}",
                     opcode.mode, opcode.code
                 ),
             }
         }
-        _ => String::from(""),
+        _ => String::new(),
     };
 
     let hex_str = hex_dump
         .iter()
-        .map(|z| format!("{:02x}", z))
+        .map(|z| format!("{z:02x}"))
         .collect::<Vec<String>>()
         .join(" ");
     let asm_str = format!(

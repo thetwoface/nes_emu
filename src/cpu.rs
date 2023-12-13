@@ -350,6 +350,10 @@ impl CPU {
         }
     }
 
+    /// # Panics
+    ///
+    /// Will panic if `mode` is not supported
+    #[must_use]
     pub fn get_absolute_address(&self, mode: &AddressingMode, addr: u16) -> u16 {
         match mode {
             AddressingMode::ZeroPage => u16::from(self.mem_read(addr)),
