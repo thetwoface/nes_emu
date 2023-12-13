@@ -1264,17 +1264,19 @@ impl CPU {
 
 impl Default for CPU {
     fn default() -> Self {
-        CPU::new(Bus::new())
+        CPU::new(Bus::default())
     }
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::cartridge::test;
 
     #[test]
     fn test_0xa9_lda_immediate_load_data() {
-        let mut cpu = CPU::default();
+        let bus = Bus::new(test::build_test_rom());
+        let mut cpu = CPU::new(bus);
         cpu.load_and_run(&vec![0xa9, 0x05, 0x00]);
         assert_eq!(cpu.register_a, 0x05);
         assert!(cpu.status.bits() & 0b0000_0010 == 0b00);
@@ -1283,21 +1285,24 @@ mod test {
 
     #[test]
     fn test_0xa9_lda_zero_flag() {
-        let mut cpu = CPU::default();
+        let bus = Bus::new(test::build_test_rom());
+        let mut cpu = CPU::new(bus);
         cpu.load_and_run(&vec![0xa9, 0x00, 0x00]);
         assert!(cpu.status.bits() & 0b0000_0010 == 0b10);
     }
 
     #[test]
     fn test_0xa9_lda_negative_flag() {
-        let mut cpu = CPU::default();
+        let bus = Bus::new(test::build_test_rom());
+        let mut cpu = CPU::new(bus);
         cpu.load_and_run(&vec![0xa9, 0xff, 0x00]);
         assert!(cpu.status.bits() & 0b1000_0000 == 0b1000_0000);
     }
 
     #[test]
     fn test_lda_from_memory() {
-        let mut cpu = CPU::default();
+        let bus = Bus::new(test::build_test_rom());
+        let mut cpu = CPU::new(bus);
         cpu.mem_write(0x10, 0x55);
 
         cpu.load_and_run(&vec![0xa5, 0x10, 0x00]);
@@ -1307,7 +1312,8 @@ mod test {
 
     #[test]
     fn test_0xaa_tax_move_a_to_x() {
-        let mut cpu = CPU::default();
+        let bus = Bus::new(test::build_test_rom());
+        let mut cpu = CPU::new(bus);
         cpu.load_and_run(&vec![0xa9, 0x0A, 0xaa, 0x00]);
 
         assert_eq!(cpu.register_x, 10)
@@ -1315,7 +1321,8 @@ mod test {
 
     #[test]
     fn test_5_ops_working_together() {
-        let mut cpu = CPU::default();
+        let bus = Bus::new(test::build_test_rom());
+        let mut cpu = CPU::new(bus);
         cpu.load_and_run(&vec![0xa9, 0xc0, 0xaa, 0xe8, 0x00]);
 
         assert_eq!(cpu.register_x, 0xc1)
@@ -1323,7 +1330,8 @@ mod test {
 
     #[test]
     fn test_inx_overflow() {
-        let mut cpu = CPU::default();
+        let bus = Bus::new(test::build_test_rom());
+        let mut cpu = CPU::new(bus);
         cpu.load_and_run(&vec![0xa9, 0xff, 0xaa, 0xe8, 0xe8, 0x00]);
 
         assert_eq!(cpu.register_x, 1)
@@ -1331,7 +1339,8 @@ mod test {
 
     #[test]
     fn test_add_with_carry() {
-        let mut cpu = CPU::default();
+        let bus = Bus::new(test::build_test_rom());
+        let mut cpu = CPU::new(bus);
         cpu.load_and_run(&vec![0xA9, 0x01, 0x69, 0x01]);
 
         assert_eq!(cpu.register_a, 0x02);
@@ -1340,7 +1349,8 @@ mod test {
 
     #[test]
     fn test_add_with_carry_overflow() {
-        let mut cpu = CPU::default();
+        let bus = Bus::new(test::build_test_rom());
+        let mut cpu = CPU::new(bus);
         cpu.load_and_run(&vec![0xA9, 0xFF, 0x69, 0xFF]);
 
         assert_eq!(cpu.register_a, 0xFE);
@@ -1349,7 +1359,8 @@ mod test {
 
     #[test]
     fn test_add_with_carry_overflow_and_zero() {
-        let mut cpu = CPU::default();
+        let bus = Bus::new(test::build_test_rom());
+        let mut cpu = CPU::new(bus);
         cpu.load_and_run(&vec![0xA9, 0xFF, 0x69, 0x01]);
 
         assert_eq!(cpu.register_a, 0x00);
@@ -1359,7 +1370,8 @@ mod test {
 
     #[test]
     fn test_add_with_carry_carries() {
-        let mut cpu = CPU::default();
+        let bus = Bus::new(test::build_test_rom());
+        let mut cpu = CPU::new(bus);
         cpu.load_and_run(&vec![0xA9, 0xFF, 0x69, 0x01, 0x69, 0x01]);
 
         assert_eq!(cpu.register_a, 0x02);
@@ -1369,7 +1381,8 @@ mod test {
 
     #[test]
     fn test_subtract_with_carry() {
-        let mut cpu = CPU::default();
+        let bus = Bus::new(test::build_test_rom());
+        let mut cpu = CPU::new(bus);
         cpu.load_and_run(&vec![0xA9, 0x02, 0xE9, 0x01]);
 
         assert_eq!(cpu.register_a, 0x00);
@@ -1379,7 +1392,8 @@ mod test {
 
     #[test]
     fn test_subtract_with_carry_overflow() {
-        let mut cpu = CPU::default();
+        let bus = Bus::new(test::build_test_rom());
+        let mut cpu = CPU::new(bus);
         cpu.load_and_run(&vec![0xA9, 0x00, 0xE9, 0x01]);
 
         assert_eq!(cpu.register_a, 0xFE);
@@ -1389,7 +1403,8 @@ mod test {
 
     #[test]
     fn test_logical_and() {
-        let mut cpu = CPU::default();
+        let bus = Bus::new(test::build_test_rom());
+        let mut cpu = CPU::new(bus);
         cpu.load_and_run(&vec![0xA9, 0xFF, 0x29, 0xF0]);
 
         assert_eq!(cpu.register_a, 0xF0);
@@ -1399,7 +1414,8 @@ mod test {
 
     #[test]
     fn test_arithmetic_shift_left_1() {
-        let mut cpu = CPU::default();
+        let bus = Bus::new(test::build_test_rom());
+        let mut cpu = CPU::new(bus);
         cpu.load_and_run(&vec![0xA9, 0x80, 0x0A]);
 
         assert_eq!(cpu.register_a, 0x00);
@@ -1410,7 +1426,8 @@ mod test {
 
     #[test]
     fn test_arithmetic_shift_left_2() {
-        let mut cpu = CPU::default();
+        let bus = Bus::new(test::build_test_rom());
+        let mut cpu = CPU::new(bus);
         cpu.load_and_run(&vec![0xA9, 0x08, 0x0A]);
 
         assert_eq!(cpu.register_a, 0x10);
@@ -1421,7 +1438,8 @@ mod test {
 
     #[test]
     fn test_lsr() {
-        let mut cpu = CPU::default();
+        let bus = Bus::new(test::build_test_rom());
+        let mut cpu = CPU::new(bus);
         cpu.load_and_run(&vec![0xA9, 0x01, 0x4A, 0x00]);
 
         assert_eq!(cpu.register_a, 0x00);
@@ -1432,7 +1450,8 @@ mod test {
 
     #[test]
     fn test_rol() {
-        let mut cpu = CPU::default();
+        let bus = Bus::new(test::build_test_rom());
+        let mut cpu = CPU::new(bus);
         cpu.load_and_run(&vec![0xA9, 0xF0, 0x2A, 0x00]);
 
         assert_eq!(cpu.register_a, 0xE0);
@@ -1443,7 +1462,8 @@ mod test {
 
     #[test]
     fn test_ror() {
-        let mut cpu = CPU::default();
+        let bus = Bus::new(test::build_test_rom());
+        let mut cpu = CPU::new(bus);
         cpu.load_and_run(&vec![0xA9, 0x01, 0x6A, 0x00]);
 
         assert_eq!(cpu.register_a, 0x00);
@@ -1454,7 +1474,8 @@ mod test {
 
     #[test]
     fn test_branch_if_carry_clear() {
-        let mut cpu = CPU::default();
+        let bus = Bus::new(test::build_test_rom());
+        let mut cpu = CPU::new(bus);
         cpu.load_and_run(&vec![
             0x90, 0x08, 0xA9, 0x01, 0xC9, 0x02, 0xD0, 0x02, 0x85, 0x22, 0x00,
         ]);
@@ -1464,7 +1485,8 @@ mod test {
 
     #[test]
     fn test_branch_if_carry_set() {
-        let mut cpu = CPU::default();
+        let bus = Bus::new(test::build_test_rom());
+        let mut cpu = CPU::new(bus);
         cpu.load_and_run(&vec![0xA9, 0xFF, 0x69, 0x02, 0xB0, 0x02, 0xA9, 0x0F, 0x00]);
 
         assert_eq!(cpu.register_a, 0x01);
@@ -1472,7 +1494,8 @@ mod test {
 
     #[test]
     fn test_branch_if_equal() {
-        let mut cpu = CPU::default();
+        let bus = Bus::new(test::build_test_rom());
+        let mut cpu = CPU::new(bus);
         cpu.load_and_run(&vec![0xA9, 0x00, 0xF0, 0x02, 0xA9, 0xFF, 0x00]);
 
         assert_eq!(cpu.register_a, 0x00);
@@ -1480,7 +1503,8 @@ mod test {
 
     #[test]
     fn test_branch_if_not_equal() {
-        let mut cpu = CPU::default();
+        let bus = Bus::new(test::build_test_rom());
+        let mut cpu = CPU::new(bus);
         cpu.load_and_run(&vec![0xA9, 0xFF, 0xD0, 0x02, 0xA9, 0x00, 0x00]);
 
         assert_eq!(cpu.register_a, 0xFF);
@@ -1488,7 +1512,8 @@ mod test {
 
     #[test]
     fn test_branch_if_minus() {
-        let mut cpu = CPU::default();
+        let bus = Bus::new(test::build_test_rom());
+        let mut cpu = CPU::new(bus);
         cpu.load_and_run(&vec![0xA9, 0xFF, 0x29, 0xFF, 0x30, 0x02, 0xA9, 0xEE, 0x00]);
 
         assert_eq!(cpu.register_a, 0xFF);
@@ -1496,7 +1521,8 @@ mod test {
 
     #[test]
     fn test_branch_if_positive() {
-        let mut cpu = CPU::default();
+        let bus = Bus::new(test::build_test_rom());
+        let mut cpu = CPU::new(bus);
         cpu.load_and_run(&vec![0xA9, 0x0F, 0x10, 0x02, 0xA9, 0xEE, 0x00]);
 
         assert_eq!(cpu.register_a, 0x0F);
@@ -1504,7 +1530,8 @@ mod test {
 
     #[test]
     fn test_branch_if_overflow_clear() {
-        let mut cpu = CPU::default();
+        let bus = Bus::new(test::build_test_rom());
+        let mut cpu = CPU::new(bus);
         cpu.load_and_run(&vec![0xA9, 0xFF, 0x50, 0x02, 0xA9, 0xEE, 0x00]);
 
         assert_eq!(cpu.register_a, 0xFF);
@@ -1512,7 +1539,8 @@ mod test {
 
     #[test]
     fn test_branch_if_overflow_set() {
-        let mut cpu = CPU::default();
+        let bus = Bus::new(test::build_test_rom());
+        let mut cpu = CPU::new(bus);
         cpu.load_and_run(&vec![0xA9, 0x40, 0x69, 0x40, 0x70, 0x02, 0xA9, 0xEE, 0x00]);
 
         assert_eq!(cpu.register_a, 0x80);
@@ -1520,7 +1548,8 @@ mod test {
 
     #[test]
     fn test_set_carry_flag() {
-        let mut cpu = CPU::default();
+        let bus = Bus::new(test::build_test_rom());
+        let mut cpu = CPU::new(bus);
         cpu.load_and_run(&vec![0x38, 0x00]);
 
         assert_eq!(cpu.status.contains(CpuFlags::CARRY), true);
@@ -1528,7 +1557,8 @@ mod test {
 
     #[test]
     fn test_clear_carry_flag() {
-        let mut cpu = CPU::default();
+        let bus = Bus::new(test::build_test_rom());
+        let mut cpu = CPU::new(bus);
         cpu.load_and_run(&vec![0x38, 0x18, 0x00]);
 
         assert_eq!(cpu.status.contains(CpuFlags::CARRY), false);
@@ -1536,7 +1566,8 @@ mod test {
 
     #[test]
     fn test_set_decimal_flag() {
-        let mut cpu = CPU::default();
+        let bus = Bus::new(test::build_test_rom());
+        let mut cpu = CPU::new(bus);
         cpu.load_and_run(&vec![0xF8, 0x00]);
 
         assert_eq!(cpu.status.contains(CpuFlags::DECIMAL_MODE), true);
@@ -1544,7 +1575,8 @@ mod test {
 
     #[test]
     fn test_clear_decimal_mode() {
-        let mut cpu = CPU::default();
+        let bus = Bus::new(test::build_test_rom());
+        let mut cpu = CPU::new(bus);
         cpu.load_and_run(&vec![0xF8, 0xD8, 0x00]);
 
         assert_eq!(cpu.status.contains(CpuFlags::DECIMAL_MODE), false);
@@ -1552,7 +1584,8 @@ mod test {
 
     #[test]
     fn test_set_interrupt_disable() {
-        let mut cpu = CPU::default();
+        let bus = Bus::new(test::build_test_rom());
+        let mut cpu = CPU::new(bus);
         cpu.load_and_run(&vec![0x78, 0x00]);
 
         assert_eq!(cpu.status.contains(CpuFlags::INTERRUPT_DISABLE), true);
@@ -1560,7 +1593,8 @@ mod test {
 
     #[test]
     fn test_clear_interrupt_disable() {
-        let mut cpu = CPU::default();
+        let bus = Bus::new(test::build_test_rom());
+        let mut cpu = CPU::new(bus);
         cpu.load_and_run(&vec![0x78, 0xA9, 0xFF, 0x58, 0x00]);
 
         assert_eq!(cpu.status.contains(CpuFlags::INTERRUPT_DISABLE), false);
@@ -1568,7 +1602,8 @@ mod test {
 
     #[test]
     fn test_clear_overflow_flag() {
-        let mut cpu = CPU::default();
+        let bus = Bus::new(test::build_test_rom());
+        let mut cpu = CPU::new(bus);
         cpu.load_and_run(&vec![0xA9, 0x40, 0x69, 0x40, 0xB8, 0x00]);
 
         assert_eq!(cpu.status.contains(CpuFlags::OVERFLOW), false);
@@ -1576,7 +1611,8 @@ mod test {
 
     #[test]
     fn test_compare_a_greater() {
-        let mut cpu = CPU::default();
+        let bus = Bus::new(test::build_test_rom());
+        let mut cpu = CPU::new(bus);
         cpu.load_and_run(&vec![0xA9, 0x05, 0xC9, 0x03, 0x00]);
 
         assert_eq!(cpu.status.contains(CpuFlags::CARRY), true);
@@ -1586,7 +1622,8 @@ mod test {
 
     #[test]
     fn test_compare_a_equal() {
-        let mut cpu = CPU::default();
+        let bus = Bus::new(test::build_test_rom());
+        let mut cpu = CPU::new(bus);
         cpu.load_and_run(&vec![0xA9, 0x05, 0xC9, 0x05, 0x00]);
 
         assert_eq!(cpu.status.contains(CpuFlags::CARRY), true);
@@ -1596,7 +1633,8 @@ mod test {
 
     #[test]
     fn test_compare_a_less() {
-        let mut cpu = CPU::default();
+        let bus = Bus::new(test::build_test_rom());
+        let mut cpu = CPU::new(bus);
         cpu.load_and_run(&vec![0xA9, 0x02, 0xC9, 0x05, 0x00]);
 
         assert_eq!(cpu.status.contains(CpuFlags::CARRY), false);
@@ -1606,7 +1644,8 @@ mod test {
 
     #[test]
     fn test_compare_x_greater() {
-        let mut cpu = CPU::default();
+        let bus = Bus::new(test::build_test_rom());
+        let mut cpu = CPU::new(bus);
         cpu.load_and_run(&vec![0xA2, 0x05, 0xE0, 0x03, 0x00]);
 
         assert_eq!(cpu.status.contains(CpuFlags::CARRY), true);
@@ -1616,7 +1655,8 @@ mod test {
 
     #[test]
     fn test_compare_x_equal() {
-        let mut cpu = CPU::default();
+        let bus = Bus::new(test::build_test_rom());
+        let mut cpu = CPU::new(bus);
         cpu.load_and_run(&vec![0xA2, 0x05, 0xE0, 0x05, 0x00]);
 
         assert_eq!(cpu.status.contains(CpuFlags::CARRY), true);
@@ -1626,7 +1666,8 @@ mod test {
 
     #[test]
     fn test_compare_x_less() {
-        let mut cpu = CPU::default();
+        let bus = Bus::new(test::build_test_rom());
+        let mut cpu = CPU::new(bus);
         cpu.load_and_run(&vec![0xA2, 0x02, 0xE0, 0x05, 0x00]);
 
         assert_eq!(cpu.status.contains(CpuFlags::CARRY), false);
@@ -1636,7 +1677,8 @@ mod test {
 
     #[test]
     fn test_compare_y_greater() {
-        let mut cpu = CPU::default();
+        let bus = Bus::new(test::build_test_rom());
+        let mut cpu = CPU::new(bus);
         cpu.load_and_run(&vec![0xA0, 0x05, 0xC0, 0x03, 0x00]);
 
         assert_eq!(cpu.status.contains(CpuFlags::CARRY), true);
@@ -1646,7 +1688,8 @@ mod test {
 
     #[test]
     fn test_compare_y_equal() {
-        let mut cpu = CPU::default();
+        let bus = Bus::new(test::build_test_rom());
+        let mut cpu = CPU::new(bus);
         cpu.load_and_run(&vec![0xA0, 0x05, 0xC0, 0x05, 0x00]);
 
         assert_eq!(cpu.status.contains(CpuFlags::CARRY), true);
@@ -1656,7 +1699,8 @@ mod test {
 
     #[test]
     fn test_compare_y_less() {
-        let mut cpu = CPU::default();
+        let bus = Bus::new(test::build_test_rom());
+        let mut cpu = CPU::new(bus);
         cpu.load_and_run(&vec![0xA0, 0x02, 0xC0, 0x05, 0x00]);
 
         assert_eq!(cpu.status.contains(CpuFlags::CARRY), false);
@@ -1666,7 +1710,8 @@ mod test {
 
     #[test]
     fn test_ldx_immediate() {
-        let mut cpu = CPU::default();
+        let bus = Bus::new(test::build_test_rom());
+        let mut cpu = CPU::new(bus);
         cpu.load_and_run(&vec![0xA2, 0x33, 0x00]);
 
         assert_eq!(cpu.register_x, 0x33);
@@ -1674,7 +1719,8 @@ mod test {
 
     #[test]
     fn test_ldy_immediate() {
-        let mut cpu = CPU::default();
+        let bus = Bus::new(test::build_test_rom());
+        let mut cpu = CPU::new(bus);
         cpu.load_and_run(&vec![0xA0, 0x33, 0x00]);
 
         assert_eq!(cpu.register_y, 0x33);
@@ -1682,7 +1728,8 @@ mod test {
 
     #[test]
     fn test_dec() {
-        let mut cpu = CPU::default();
+        let bus = Bus::new(test::build_test_rom());
+        let mut cpu = CPU::new(bus);
         cpu.mem_write(0x10, 0x55);
 
         cpu.load_and_run(&vec![0xCE, 0x10, 0x00]);
@@ -1694,7 +1741,8 @@ mod test {
 
     #[test]
     fn test_dex() {
-        let mut cpu = CPU::default();
+        let bus = Bus::new(test::build_test_rom());
+        let mut cpu = CPU::new(bus);
 
         cpu.load_and_run(&vec![0xA2, 0x01, 0xCA, 0x00]);
 
@@ -1704,7 +1752,8 @@ mod test {
 
     #[test]
     fn test_dey() {
-        let mut cpu = CPU::default();
+        let bus = Bus::new(test::build_test_rom());
+        let mut cpu = CPU::new(bus);
 
         cpu.load_and_run(&vec![0xA0, 0x01, 0x88, 0x00]);
 
@@ -1714,7 +1763,8 @@ mod test {
 
     #[test]
     fn test_exclusive_or() {
-        let mut cpu = CPU::default();
+        let bus = Bus::new(test::build_test_rom());
+        let mut cpu = CPU::new(bus);
 
         cpu.load_and_run(&vec![0xA9, 0x01, 0x49, 0x01, 0x00]);
 
@@ -1724,7 +1774,8 @@ mod test {
 
     #[test]
     fn test_logical_inclusive_or() {
-        let mut cpu = CPU::default();
+        let bus = Bus::new(test::build_test_rom());
+        let mut cpu = CPU::new(bus);
 
         cpu.load_and_run(&vec![0xA9, 0x01, 0x09, 0x10, 0x00]);
 
@@ -1734,7 +1785,8 @@ mod test {
 
     #[test]
     fn test_increment_memory() {
-        let mut cpu = CPU::default();
+        let bus = Bus::new(test::build_test_rom());
+        let mut cpu = CPU::new(bus);
 
         cpu.mem_write(0x10, 0x55);
 
@@ -1748,7 +1800,8 @@ mod test {
 
     #[test]
     fn test_increment_y() {
-        let mut cpu = CPU::default();
+        let bus = Bus::new(test::build_test_rom());
+        let mut cpu = CPU::new(bus);
 
         cpu.load_and_run(&vec![0xA0, 0x01, 0xC8, 0x00]);
 
@@ -1759,7 +1812,8 @@ mod test {
 
     #[test]
     fn test_increment_y_overflow() {
-        let mut cpu = CPU::default();
+        let bus = Bus::new(test::build_test_rom());
+        let mut cpu = CPU::new(bus);
 
         cpu.load_and_run(&vec![0xA0, 0xFF, 0xC8, 0x00]);
 
@@ -1772,7 +1826,8 @@ mod test {
 
     #[test]
     fn test_stack_accumulator() {
-        let mut cpu = CPU::default();
+        let bus = Bus::new(test::build_test_rom());
+        let mut cpu = CPU::new(bus);
 
         cpu.load_and_run(&vec![0xA9, 0xFF, 0x48, 0xA9, 0x33, 0x68, 0x00]);
 
