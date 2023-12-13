@@ -122,6 +122,7 @@ impl CPU {
     pub fn load_and_run(&mut self, program: &[u8]) {
         self.load(program);
         self.reset();
+        self.program_counter = 0x0600;
         self.run();
     }
 
@@ -130,7 +131,7 @@ impl CPU {
         for i in 0..(program.len() as u16) {
             self.mem_write(0x0600 + i, program[i as usize]);
         }
-        self.mem_write_u16(0xFFFC, 0x0600);
+        //self.mem_write_u16(0xFFFC, 0x0600);
     }
 
     pub fn run(&mut self) {
@@ -147,6 +148,7 @@ impl CPU {
         let opcodes: &HashMap<u8, &'static opcodes::OpCode> = &opcodes::OPCODES_MAP;
 
         loop {
+            callback(self);
             // Fetch next execution instruction from the instruction memory
             let code = self.mem_read(self.program_counter);
             self.program_counter += 1;
@@ -177,7 +179,7 @@ impl CPU {
                 0x84 | 0x94 | 0x8C => self.sty(&opcode.mode),
 
                 // ADC - Add with Carry
-                0x69 | 0x65 | 0x75 | 0x6D | 0x7D | 0x79 | 0x61 | 71 => self.adc(&opcode.mode),
+                0x69 | 0x65 | 0x75 | 0x6D | 0x7D | 0x79 | 0x61 | 0x71 => self.adc(&opcode.mode),
 
                 // SBC
                 0xE9 | 0xE5 | 0xF5 | 0xED | 0xFD | 0xF9 | 0xE1 | 0xF1 => self.sbc(&opcode.mode),
@@ -345,41 +347,37 @@ impl CPU {
             if program_counter_state == self.program_counter {
                 self.program_counter += u16::from(opcode.len - 1);
             }
-
-            callback(self);
         }
     }
 
-    fn get_operand_address(&self, mode: &AddressingMode) -> u16 {
+    pub fn get_absolute_address(&self, mode: &AddressingMode, addr: u16) -> u16 {
         match mode {
-            AddressingMode::Immediate => self.program_counter,
+            AddressingMode::ZeroPage => u16::from(self.mem_read(addr)),
 
-            AddressingMode::ZeroPage => u16::from(self.mem_read(self.program_counter)),
-
-            AddressingMode::Absolute => self.mem_read_u16(self.program_counter),
+            AddressingMode::Absolute => self.mem_read_u16(addr),
 
             AddressingMode::ZeroPageX => {
-                let pos = self.mem_read(self.program_counter);
+                let pos = self.mem_read(addr);
                 u16::from(pos.wrapping_add(self.register_x))
             }
 
             AddressingMode::ZeroPageY => {
-                let pos = self.mem_read(self.program_counter);
+                let pos = self.mem_read(addr);
                 u16::from(pos.wrapping_add(self.register_y))
             }
 
             AddressingMode::AbsoluteX => {
-                let base = self.mem_read_u16(self.program_counter);
+                let base = self.mem_read_u16(addr);
                 base.wrapping_add(u16::from(self.register_x))
             }
 
             AddressingMode::AbsoluteY => {
-                let base = self.mem_read_u16(self.program_counter);
+                let base = self.mem_read_u16(addr);
                 base.wrapping_add(u16::from(self.register_y))
             }
 
             AddressingMode::IndirectX => {
-                let base = self.mem_read(self.program_counter);
+                let base = self.mem_read(addr);
                 let ptr = base.wrapping_add(self.register_x);
                 let lo = self.mem_read(u16::from(ptr));
                 let hi = self.mem_read(u16::from(ptr.wrapping_add(1)));
@@ -387,16 +385,23 @@ impl CPU {
             }
 
             AddressingMode::IndirectY => {
-                let base = self.mem_read(self.program_counter);
+                let base = self.mem_read(addr);
                 let lo = self.mem_read(u16::from(base));
                 let hi = self.mem_read(u16::from(base.wrapping_add(1)));
                 let deref_base = (u16::from(hi)) << 8 | (u16::from(lo));
                 deref_base.wrapping_add(u16::from(self.register_y))
             }
 
-            AddressingMode::NoneAddressing => {
+            _ => {
                 panic!("mode {mode:?} is not supported");
             }
+        }
+    }
+
+    fn get_operand_address(&self, mode: &AddressingMode) -> u16 {
+        match mode {
+            AddressingMode::Immediate => self.program_counter,
+            _ => self.get_absolute_address(mode, self.program_counter),
         }
     }
 

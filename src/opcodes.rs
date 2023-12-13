@@ -24,10 +24,10 @@ impl OpCode {
 
 lazy_static! {
     pub static ref CPU_OPS_CODES: Vec<OpCode> = vec![
-        OpCode::new(0x4C, "JMP", 3, 3, AddressingMode::Absolute),
-        OpCode::new(0x6C, "JMP", 3, 5, AddressingMode::NoneAddressing), // Indirect
+        OpCode::new(0x4C, "JMP", 3, 3, AddressingMode::NoneAddressing), // Immidiate
+        OpCode::new(0x6C, "JMP", 3, 5, AddressingMode::NoneAddressing), // Indirect with 6502 bug
 
-        OpCode::new(0x20, "JSR", 3, 6, AddressingMode::Absolute), // Absolute
+        OpCode::new(0x20, "JSR", 3, 6, AddressingMode::NoneAddressing), // Absolute
 
         OpCode::new(0x60, "RTS", 1, 6, AddressingMode::NoneAddressing), // Implied
 
@@ -203,7 +203,7 @@ lazy_static! {
         OpCode::new(0x91, "STA", 2, 6, AddressingMode::IndirectY),
 
         OpCode::new(0x86, "STX", 2, 3, AddressingMode::ZeroPage),
-        OpCode::new(0x96, "STX", 2, 4, AddressingMode::ZeroPageX),
+        OpCode::new(0x96, "STX", 2, 4, AddressingMode::ZeroPageY),
         OpCode::new(0x8E, "STX", 3, 4, AddressingMode::Absolute),
 
         OpCode::new(0x84, "STY", 2, 3, AddressingMode::ZeroPage),
