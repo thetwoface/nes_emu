@@ -341,6 +341,31 @@ impl CPU {
                     // other than the normal incrementing of the program counter to the next instruction.
                 }
 
+                // Unoficial / illegal
+
+                // DOP (NOP) [SKB]
+                0x04 | 0x44 | 0x64 | 0x14 | 0x34 | 0x54 | 0x74 | 0xD4 | 0xF4 => {
+                    self.dop(&opcode.mode)
+                }
+
+                // DOP (NOP) [SKB]
+                0x80 | 0x82 | 0x89 | 0xC2 | 0xE2 => {}
+
+                // TOP (NOP) [SKW]
+                0x0C | 0x1C | 0x3C | 0x5C | 0x7C | 0xDC | 0xFC => self.top(&opcode.mode),
+
+                // NOP (NOP) [NOP]
+                0x1A | 0x3A | 0x5A | 0x7A | 0xDA | 0xFA => {}
+
+                // LAX (LAX) [LAX]
+                0xA7 | 0xB7 | 0xAF | 0xBF | 0xA3 | 0xB3 => self.lax(&opcode.mode),
+
+                // AAX (SAX) [AXS]
+                0x87 | 0x97 | 0x83 | 0x8F => self.sax(&opcode.mode),
+
+                // Unoficial SBC
+                0xEB => self.sbc(&opcode.mode),
+
                 _ => todo!(""),
             }
 
@@ -1193,6 +1218,51 @@ impl CPU {
         self.status.insert(CpuFlags::BREAK2);
 
         self.program_counter = self.stack_pop_u16();
+    }
+
+    /**
+     * DOP (NOP) [SKB]
+     * No operation (double NOP). The argument has no significance.
+     * Status flags: -
+     */
+    fn dop(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        let _data = self.mem_read(addr);
+    }
+
+    /**
+     * TOP (NOP) [SKW]
+     * No operation (tripple NOP). The argument has no significance.
+     * Status flags: -
+     */
+    fn top(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        let _data = self.mem_read(addr);
+    }
+
+    /**
+     * LAX (LAX) [LAX]
+     * Load accumulator and X register with memory.
+     * Status flags: N,Z
+     */
+    fn lax(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        let data = self.mem_read(addr);
+
+        self.set_register_a(data);
+        self.register_x = data;
+    }
+
+    /**
+     * AAX (SAX) [AXS]
+     * AND X register with accumulator and store result in memory.
+     * Status flags: -
+     */
+    fn sax(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+
+        let result = self.register_a & self.register_x;
+        self.mem_write(addr, result);
     }
 
     fn compare(&mut self, mode: &AddressingMode, register: u8) {

@@ -225,6 +225,53 @@ lazy_static! {
         OpCode::new(0x00, "BRK", 1, 7, AddressingMode::NoneAddressing),
         OpCode::new(0xEA, "NOP", 1, 2, AddressingMode::NoneAddressing), // Implied
         OpCode::new(0x40, "RTI", 1, 6, AddressingMode::NoneAddressing), // Implied
+
+        // Undocumented / Illegal
+
+        OpCode::new(0x04, "*NOP", 2, 3, AddressingMode::ZeroPage),
+        OpCode::new(0x44, "*NOP", 2, 3, AddressingMode::ZeroPage),
+        OpCode::new(0x64, "*NOP", 2, 3, AddressingMode::ZeroPage),
+        OpCode::new(0x14, "*NOP", 2, 4, AddressingMode::ZeroPageX),
+        OpCode::new(0x34, "*NOP", 2, 4, AddressingMode::ZeroPageX),
+        OpCode::new(0x54, "*NOP", 2, 4, AddressingMode::ZeroPageX),
+        OpCode::new(0x74, "*NOP", 2, 4, AddressingMode::ZeroPageX),
+        OpCode::new(0xD4, "*NOP", 2, 4, AddressingMode::ZeroPageX),
+        OpCode::new(0xF4, "*NOP", 2, 4, AddressingMode::ZeroPageX),
+
+        OpCode::new(0x80, "*NOP", 2, 2, AddressingMode::Immediate),
+        OpCode::new(0x82, "*NOP", 2, 2, AddressingMode::Immediate),
+        OpCode::new(0x89, "*NOP", 2, 2, AddressingMode::Immediate),
+        OpCode::new(0xC2, "*NOP", 2, 2, AddressingMode::Immediate),
+        OpCode::new(0xE2, "*NOP", 2, 2, AddressingMode::Immediate),
+
+        OpCode::new(0x0C, "*NOP", 3, 4, AddressingMode::Absolute),
+        OpCode::new(0x1C, "*NOP", 3, 4/*+1 if page crossed*/, AddressingMode::AbsoluteX),
+        OpCode::new(0x3C, "*NOP", 3, 4/*+1 if page crossed*/, AddressingMode::AbsoluteX),
+        OpCode::new(0x5C, "*NOP", 3, 4/*+1 if page crossed*/, AddressingMode::AbsoluteX),
+        OpCode::new(0x7C, "*NOP", 3, 4/*+1 if page crossed*/, AddressingMode::AbsoluteX),
+        OpCode::new(0xDC, "*NOP", 3, 4/*+1 if page crossed*/, AddressingMode::AbsoluteX),
+        OpCode::new(0xFC, "*NOP", 3, 4/*+1 if page crossed*/, AddressingMode::AbsoluteX),
+
+        OpCode::new(0x1A, "*NOP", 1, 2, AddressingMode::NoneAddressing), // Implied
+        OpCode::new(0x3A, "*NOP", 1, 2, AddressingMode::NoneAddressing), // Implied
+        OpCode::new(0x5A, "*NOP", 1, 2, AddressingMode::NoneAddressing), // Implied
+        OpCode::new(0x7A, "*NOP", 1, 2, AddressingMode::NoneAddressing), // Implied
+        OpCode::new(0xDA, "*NOP", 1, 2, AddressingMode::NoneAddressing), // Implied
+        OpCode::new(0xFA, "*NOP", 1, 2, AddressingMode::NoneAddressing), // Implied
+
+        OpCode::new(0xA7, "*LAX", 2, 3, AddressingMode::ZeroPage),
+        OpCode::new(0xB7, "*LAX", 2, 4, AddressingMode::ZeroPageY),
+        OpCode::new(0xAF, "*LAX", 3, 4, AddressingMode::Absolute),
+        OpCode::new(0xBF, "*LAX", 3, 4/*+1 if page crossed*/, AddressingMode::AbsoluteY),
+        OpCode::new(0xA3, "*LAX", 2, 6, AddressingMode::IndirectX),
+        OpCode::new(0xB3, "*LAX", 2, 5/*+1 if page crossed*/, AddressingMode::IndirectY),
+
+        OpCode::new(0x87, "*SAX", 2, 3, AddressingMode::ZeroPage),
+        OpCode::new(0x97, "*SAX", 2, 4, AddressingMode::ZeroPageY),
+        OpCode::new(0x83, "*SAX", 2, 6, AddressingMode::IndirectX),
+        OpCode::new(0x8F, "*SAX", 3, 4, AddressingMode::Absolute),
+
+        OpCode::new(0xEB, "*SBC", 2,2, AddressingMode::Immediate),
     ];
 
     pub static ref OPCODES_MAP:HashMap<u8,&'static OpCode>={
