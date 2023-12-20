@@ -8,11 +8,13 @@ pub mod bus;
 pub mod cartridge;
 pub mod cpu;
 pub mod opcodes;
+pub mod ppu;
 pub mod trace;
 
 use bus::Bus;
-use cartridge::Rom;
+use cartridge::{Mirroring, Rom};
 use cpu::CPU;
+use ppu::NesPPU;
 use trace::trace;
 
 #[macro_use]

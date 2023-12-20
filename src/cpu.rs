@@ -17,7 +17,7 @@ bitflags! {
     ///
     #[repr(transparent)]
     #[derive(Clone)]
-    pub struct CpuFlags:u8{
+    pub struct CpuFlags: u8 {
         const CARRY             = 0b0000_0001;
         const ZERO              = 0b0000_0010;
         const INTERRUPT_DISABLE = 0b0000_0100;
@@ -58,11 +58,11 @@ pub struct CPU {
 }
 
 pub trait Mem {
-    fn mem_read(&self, addr: u16) -> u8;
+    fn mem_read(&mut self, addr: u16) -> u8;
 
     fn mem_write(&mut self, addr: u16, data: u8);
 
-    fn mem_read_u16(&self, pos: u16) -> u16 {
+    fn mem_read_u16(&mut self, pos: u16) -> u16 {
         // consider https://doc.rust-lang.org/std/primitive.u16.html#method.from_le_bytes
         let lo = u16::from(self.mem_read(pos));
         let hi = u16::from(self.mem_read(pos + 1));
@@ -79,7 +79,7 @@ pub trait Mem {
 }
 
 impl Mem for CPU {
-    fn mem_read(&self, addr: u16) -> u8 {
+    fn mem_read(&mut self, addr: u16) -> u8 {
         self.bus.mem_read(addr)
     }
 
@@ -87,7 +87,7 @@ impl Mem for CPU {
         self.bus.mem_write(addr, data);
     }
 
-    fn mem_read_u16(&self, pos: u16) -> u16 {
+    fn mem_read_u16(&mut self, pos: u16) -> u16 {
         self.bus.mem_read_u16(pos)
     }
 
@@ -433,7 +433,7 @@ impl CPU {
     ///
     /// Will panic if `mode` is not supported
     #[must_use]
-    pub fn get_absolute_address(&self, mode: &AddressingMode, addr: u16) -> u16 {
+    pub fn get_absolute_address(&mut self, mode: &AddressingMode, addr: u16) -> u16 {
         match mode {
             AddressingMode::ZeroPage => u16::from(self.mem_read(addr)),
 
@@ -481,7 +481,7 @@ impl CPU {
         }
     }
 
-    fn get_operand_address(&self, mode: &AddressingMode) -> u16 {
+    fn get_operand_address(&mut self, mode: &AddressingMode) -> u16 {
         match mode {
             AddressingMode::Immediate => self.program_counter,
             _ => self.get_absolute_address(mode, self.program_counter),
