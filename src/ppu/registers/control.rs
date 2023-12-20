@@ -28,10 +28,14 @@ bitflags! {
 }
 
 impl ControlRegister {
+    #[must_use]
     pub fn new() -> Self {
         Self::from_bits_truncate(0b0000_0000)
     }
 
+    /// # Panics
+    /// Will panic if something went wrong with nametable adsress bits
+    #[must_use]
     pub fn nametable_addr(&self) -> u16 {
         match self.bits() & 0b11 {
             0 => 0x2000,
@@ -42,52 +46,60 @@ impl ControlRegister {
         }
     }
 
+    #[must_use]
     pub fn vram_addr_increment(&self) -> u8 {
-        if !self.contains(ControlRegister::VRAM_ADD_INCREMENT) {
-            1
-        } else {
+        if self.contains(ControlRegister::VRAM_ADD_INCREMENT) {
             32
-        }
-    }
-
-    pub fn sprt_pattern_addr(&self) -> u16 {
-        if !self.contains(ControlRegister::SPRITE_PATTERN_ADDR) {
-            0
-        } else {
-            0x1000
-        }
-    }
-
-    pub fn bknd_pattern_addr(&self) -> u16 {
-        if !self.contains(ControlRegister::BACKROUND_PATTERN_ADDR) {
-            0
-        } else {
-            0x1000
-        }
-    }
-
-    pub fn sprite_size(&self) -> u8 {
-        if !self.contains(ControlRegister::SPRITE_SIZE) {
-            8
-        } else {
-            16
-        }
-    }
-
-    pub fn master_slave_select(&self) -> u8 {
-        if !self.contains(ControlRegister::MASTER_SLAVE_SELECT) {
-            0
         } else {
             1
         }
     }
 
+    #[must_use]
+    pub fn sprt_pattern_addr(&self) -> u16 {
+        if self.contains(ControlRegister::SPRITE_PATTERN_ADDR) {
+            0x1000
+        } else {
+            0
+        }
+    }
+
+    #[must_use]
+    pub fn bknd_pattern_addr(&self) -> u16 {
+        if self.contains(ControlRegister::BACKROUND_PATTERN_ADDR) {
+            0x1000
+        } else {
+            0
+        }
+    }
+
+    #[must_use]
+    pub fn sprite_size(&self) -> u8 {
+        if self.contains(ControlRegister::SPRITE_SIZE) {
+            16
+        } else {
+            8
+        }
+    }
+
+    #[must_use]
+    pub fn master_slave_select(&self) -> u8 {
+        u8::from(self.contains(ControlRegister::MASTER_SLAVE_SELECT))
+    }
+
+    #[must_use]
     pub fn generate_vblank_nmi(&self) -> bool {
-        return self.contains(ControlRegister::GENERATE_NMI);
+        self.contains(ControlRegister::GENERATE_NMI)
     }
 
     pub fn update(&mut self, data: u8) {
         // hope this works. if not - just use from_bits directly
         self.0 .0 = data;
+    }
+}
+
+impl Default for ControlRegister {
+    fn default() -> Self {
+        Self::new()
     }
 }

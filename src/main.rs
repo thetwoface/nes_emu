@@ -1,5 +1,5 @@
 #![warn(clippy::all, clippy::pedantic)]
-#![allow(clippy::similar_names)]
+#![allow(clippy::similar_names, clippy::module_name_repetitions)]
 
 extern crate sdl2;
 //https://blog.logrocket.com/using-sdl2-bindings-rust/
@@ -12,9 +12,8 @@ pub mod ppu;
 pub mod trace;
 
 use bus::Bus;
-use cartridge::{Mirroring, Rom};
+use cartridge::Rom;
 use cpu::CPU;
-use ppu::NesPPU;
 use trace::trace;
 
 #[macro_use]

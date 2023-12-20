@@ -4,6 +4,7 @@ pub struct AddressRegister {
 }
 
 impl AddressRegister {
+    #[must_use]
     pub fn new() -> Self {
         Self {
             value: (0, 0), // // high byte first, low byte second
@@ -16,6 +17,7 @@ impl AddressRegister {
         self.value.1 = (data & 0xff) as u8;
     }
 
+    #[must_use]
     pub fn get(&self) -> u16 {
         (u16::from(self.value.0) << 8) | u16::from(self.value.1)
     }
@@ -45,11 +47,17 @@ impl AddressRegister {
 
         //mirror down addr above 0x3FFF
         if self.get() > 0x3FFF {
-            self.set(self.get() & 0b11111111111111);
+            self.set(self.get() & 0b11_1111_1111_1111);
         }
     }
 
     pub fn reset_latch(&mut self) {
         self.hi_ptr = true;
+    }
+}
+
+impl Default for AddressRegister {
+    fn default() -> Self {
+        Self::new()
     }
 }

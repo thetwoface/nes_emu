@@ -5,6 +5,7 @@ pub struct ScrollRegister {
 }
 
 impl ScrollRegister {
+    #[must_use]
     pub fn new() -> Self {
         Self {
             scroll_x: 0,
@@ -14,15 +15,21 @@ impl ScrollRegister {
     }
 
     pub fn write(&mut self, data: u8) {
-        if !self.latch {
-            self.scroll_x = data;
-        } else {
+        if self.latch {
             self.scroll_y = data;
+        } else {
+            self.scroll_x = data;
         }
         self.latch = !self.latch;
     }
 
     pub fn reset_latch(&mut self) {
         self.latch = false;
+    }
+}
+
+impl Default for ScrollRegister {
+    fn default() -> Self {
+        Self::new()
     }
 }
