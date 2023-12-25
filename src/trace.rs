@@ -9,7 +9,7 @@ use std::collections::HashMap;
 /// May panic if opcode is not recognized
 #[allow(clippy::too_many_lines)]
 #[must_use]
-pub fn trace(cpu: &CPU) -> String {
+pub fn trace(cpu: &mut CPU) -> String {
     let opcodes: &HashMap<u8, &'static opcodes::OpCode> = &opcodes::OPCODES_MAP;
 
     let code = cpu.mem_read(cpu.program_counter);
@@ -22,7 +22,7 @@ pub fn trace(cpu: &CPU) -> String {
     let (mem_addr, stored_value) = match opcode.mode {
         AddressingMode::Immediate | AddressingMode::NoneAddressing => (0, 0),
         _ => {
-            let addr = cpu.get_absolute_address(&opcode.mode, begin + 1);
+            let (addr, _) = cpu.get_absolute_address(&opcode.mode, begin + 1);
             (addr, cpu.mem_read(addr))
         }
     };
