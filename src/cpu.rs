@@ -101,21 +101,21 @@ fn page_cross(addr1: u16, addr2: u16) -> bool {
 mod interrupt {
     #[derive(PartialEq, Eq)]
     pub enum InterruptType {
-        NMI,
+        Nmi,
     }
 
     #[derive(PartialEq, Eq)]
     pub(super) struct Interrupt {
         pub(super) itype: InterruptType,
         pub(super) vector_addr: u16,
-        pub(super) b_flag_mask: u8,
+        pub(super) break_flag: bool, // IRQ - false, NMI - false, BRK - true, PHP - true
         pub(super) cpu_cycles: u8,
     }
 
     pub(super) const NMI: Interrupt = Interrupt {
-        itype: InterruptType::NMI,
+        itype: InterruptType::Nmi,
         vector_addr: 0xFFFA,
-        b_flag_mask: 0b0010_0000,
+        break_flag: false,
         cpu_cycles: 2,
     };
 }
@@ -133,7 +133,7 @@ impl CPU {
         }
     }
 
-    /// returns (address, page_cross flag)
+    /// returns (address, `page_cross` flag)
     /// # Panics
     ///
     /// Will panic if `mode` is not supported
@@ -224,12 +224,12 @@ impl CPU {
         //self.mem_write_u16(0xFFFC, 0x0600);
     }
 
-    fn interrupt(&mut self, interrupt: interrupt::Interrupt) {
+    fn interrupt(&mut self, interrupt: &interrupt::Interrupt) {
         self.stack_push_u16(self.program_counter);
         let mut flag = self.status.clone();
 
-        flag.set(CpuFlags::BREAK, interrupt.b_flag_mask & 0b01_0000 == 1);
-        flag.set(CpuFlags::BREAK2, interrupt.b_flag_mask & 0b10_0000 == 1);
+        flag.set(CpuFlags::BREAK, interrupt.break_flag);
+        flag.set(CpuFlags::BREAK2, true);
 
         self.stack_push(flag.bits());
         self.status.insert(CpuFlags::INTERRUPT_DISABLE);
@@ -254,7 +254,7 @@ impl CPU {
 
         loop {
             if let Some(_nmi) = self.bus.poll_nmi_status() {
-                self.interrupt(interrupt::NMI);
+                self.interrupt(&interrupt::NMI);
             }
 
             callback(self);
