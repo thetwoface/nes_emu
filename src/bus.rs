@@ -1,4 +1,4 @@
-use crate::{cartridge::Rom, cpu::Mem, ppu::NesPPU, ppu::PPU};
+use crate::{cartridge::Rom, cpu::Mem, joypad::Joypad, ppu::NesPPU, ppu::PPU};
 
 //  _______________ $10000  _______________
 // | PRG-ROM       |       |               |
@@ -37,14 +37,15 @@ pub struct Bus<'call> {
     prg_rom: Vec<u8>,
     ppu: NesPPU,
     cycles: usize,
-    gameloop_callback: Box<dyn FnMut(&NesPPU) + 'call>,
+    gameloop_callback: Box<dyn FnMut(&NesPPU, &mut Joypad) + 'call>,
+    joypad1: Joypad,
 }
 
 impl<'a> Bus<'a> {
     #[must_use]
     pub fn new<'call, F>(rom: Rom, gameloop_callback: F) -> Bus<'call>
     where
-        F: FnMut(&NesPPU) + 'call,
+        F: FnMut(&NesPPU, &mut Joypad) + 'call,
     {
         let ppu = NesPPU::new(rom.chr_rom, rom.screen_mirroring);
 
@@ -54,6 +55,7 @@ impl<'a> Bus<'a> {
             ppu,
             cycles: 0,
             gameloop_callback: Box::from(gameloop_callback),
+            joypad1: Joypad::new(),
         }
     }
 
@@ -75,7 +77,7 @@ impl<'a> Bus<'a> {
         self.cycles += cycles as usize;
         let new_frame = self.ppu.tick(cycles * 3);
         if new_frame {
-            (self.gameloop_callback)(&self.ppu);
+            (self.gameloop_callback)(&self.ppu, &mut self.joypad1);
         }
     }
 
@@ -86,7 +88,7 @@ impl<'a> Bus<'a> {
 
 impl Default for Bus<'_> {
     fn default() -> Self {
-        Bus::new(Rom::default(), |_ppu: &NesPPU| {})
+        Bus::new(Rom::default(), |_ppu: &NesPPU, _joypad| {})
     }
 }
 
@@ -108,10 +110,8 @@ impl Mem for Bus<'_> {
                 // ignoring APU
                 0
             }
-            0x4016 => {
-                // ignoring joypad 1
-                0
-            }
+            0x4016 => self.joypad1.read(),
+
             0x4017 => {
                 // ignoring joypad 2
                 0
@@ -163,7 +163,8 @@ impl Mem for Bus<'_> {
                 //ignore APU
             }
             0x4016 => {
-                // ignore joypad 1;
+                // joypad 1
+                self.joypad1.write(data);
             }
             0x4017 => {
                 // ignore joypad 2
@@ -203,7 +204,7 @@ mod test {
 
     #[test]
     fn test_mem_read_write_to_ram() {
-        let mut bus = Bus::new(test::build_test_rom(), |_ppu: &NesPPU| {});
+        let mut bus = Bus::new(test::build_test_rom(), |_ppu: &NesPPU, _joypad| {});
         bus.mem_write(0x01, 0x55);
         assert_eq!(bus.mem_read(0x01), 0x55);
     }
