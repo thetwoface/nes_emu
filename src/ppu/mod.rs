@@ -27,7 +27,7 @@ pub struct NesPPU {
     pub scroll: ScrollRegister,
 
     internal_data_buf: u8,
-    scanline: u16,
+    pub scanline: u16,
     cycles: usize,
 
     pub nmi_interrupt: Option<u8>,

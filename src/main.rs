@@ -12,14 +12,17 @@ pub mod ppu;
 pub mod render;
 pub mod trace;
 
+use bus::Bus;
 //use bus::Bus;
 use cartridge::Rom;
+use cpu::CPU;
+use ppu::NesPPU;
 //use cpu::CPU;
 use render::frame::Frame;
 use sdl2::{event::Event, keyboard::Keycode, pixels::PixelFormatEnum};
 //use trace::trace;
 
-use crate::render::palette;
+//use crate::render::palette;
 
 #[macro_use]
 extern crate lazy_static;
@@ -57,7 +60,7 @@ extern crate bitflags;
     frame
 }*/
 
-fn show_tile_bank(chr_rom: &Vec<u8>, bank: usize) -> Frame {
+/*fn show_tile_bank(chr_rom: &Vec<u8>, bank: usize) -> Frame {
     assert!(bank <= 1);
 
     let mut frame = Frame::new();
@@ -96,7 +99,7 @@ fn show_tile_bank(chr_rom: &Vec<u8>, bank: usize) -> Frame {
     }
 
     frame
-}
+}*/
 
 fn main() -> Result<(), String> {
     // init sdl2
@@ -125,31 +128,18 @@ fn main() -> Result<(), String> {
         .map_err(|e| e.to_string())?;
 
     //load the game
-    let bytes: Vec<u8> = std::fs::read("Alter_Ego.nes").map_err(|e| e.to_string())?;
+    let bytes: Vec<u8> = std::fs::read("nestest.nes").map_err(|e| e.to_string())?;
     let rom = Rom::new(&bytes).map_err(|e| e.to_string())?;
 
-    /*let bus = Bus::new(rom);
-    let mut cpu = CPU::new(bus);
+    let mut frame = Frame::new();
+    let bus = Bus::new(rom, move |ppu: &NesPPU| {
+        render::render(ppu, &mut frame);
+        texture.update(None, &frame.data, 256 * 3).unwrap();
 
-    cpu.reset();
-    cpu.program_counter = 0xC000;*/
+        canvas.copy(&texture, None, None).unwrap();
 
-    let right_bank = show_tile_bank(&rom.chr_rom, 0);
+        canvas.present();
 
-    texture
-        .update(None, &right_bank.data, 256 * 3)
-        .map_err(|e| e.to_string())?;
-    canvas
-        .copy(&texture, None, None)
-        .map_err(|e| e.to_string())?;
-    canvas.present();
-
-    // run the game cycle
-    /*cpu.run_with_callback(move |cpu| {
-        println!("{}", trace(cpu));
-    });*/
-
-    loop {
         for event in event_pump.poll_iter() {
             match event {
                 Event::Quit { .. }
@@ -160,7 +150,45 @@ fn main() -> Result<(), String> {
                 _ => { /* do nothing */ }
             }
         }
-    }
+    });
 
-    //Ok(())
+    let mut cpu = CPU::new(bus);
+    cpu.reset();
+    cpu.run();
+
+    /*let bus = Bus::new(rom);
+    let mut cpu = CPU::new(bus);
+
+    cpu.reset();
+    cpu.program_counter = 0xC000;*/
+
+    /*let right_bank = show_tile_bank(&rom.chr_rom, 0);
+
+    texture
+        .update(None, &right_bank.data, 256 * 3)
+        .map_err(|e| e.to_string())?;
+    canvas
+        .copy(&texture, None, None)
+        .map_err(|e| e.to_string())?;
+    canvas.present();*/
+
+    // run the game cycle
+    /*cpu.run_with_callback(move |cpu| {
+        println!("{}", trace(cpu));
+    });*/
+
+    /*loop {
+        for event in event_pump.poll_iter() {
+            match event {
+                Event::Quit { .. }
+                | Event::KeyDown {
+                    keycode: Some(Keycode::Escape),
+                    ..
+                } => std::process::exit(0),
+                _ => { /* do nothing */ }
+            }
+        }
+    }*/
+
+    Ok(())
 }
