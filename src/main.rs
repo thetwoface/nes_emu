@@ -109,7 +109,7 @@ fn main() -> Result<(), String> {
     let sdl_context = sdl2::init()?;
     let video_subsystem = sdl_context.video()?;
     let window = video_subsystem
-        .window("Tile Viewer", 256 * 3, 240 * 3)
+        .window("NESemu", 256 * 4, 240 * 2)
         .position_centered()
         .opengl()
         .build()
@@ -123,11 +123,11 @@ fn main() -> Result<(), String> {
 
     let mut event_pump = sdl_context.event_pump().map_err(|e| e.to_string())?;
 
-    canvas.set_scale(3.0, 3.0).map_err(|e| e.to_string())?;
+    canvas.set_scale(2.0, 2.0).map_err(|e| e.to_string())?;
 
     let creator = canvas.texture_creator();
     let mut texture = creator
-        .create_texture_target(PixelFormatEnum::RGB24, 256, 240)
+        .create_texture_target(PixelFormatEnum::RGB24, 256 * 2, 240)
         .map_err(|e| e.to_string())?;
 
     //load the game
@@ -148,7 +148,7 @@ fn main() -> Result<(), String> {
 
     let bus = Bus::new(rom, move |ppu: &NesPPU, joypad: &mut joypad::Joypad| {
         render::render(ppu, &mut frame);
-        texture.update(None, &frame.data, 256 * 3).unwrap();
+        texture.update(None, &frame.data, 256 * 2 * 3).unwrap();
 
         canvas.copy(&texture, None, None).unwrap();
 
