@@ -1,6 +1,5 @@
-use std::collections::HashMap;
-
 use crate::{bus::Bus, opcodes};
+use std::collections::HashMap;
 
 bitflags! {
     /// # Status Register (P) http://wiki.nesdev.com/w/index.php/Status_flags
