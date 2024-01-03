@@ -7,6 +7,16 @@ pub mod ppu;
 pub mod render;
 pub mod trace;
 
+pub mod prelude {
+    pub const NES_SCREEN_WIDTH: u32 = 256;
+    pub const NES_SCREEN_WIDTH_USIZE: usize = NES_SCREEN_WIDTH as usize;
+    pub const NES_SCREEN_HEIGHT: u32 = 240;
+    pub const NES_SCREEN_SCALE_X: u32 = 2;
+    pub const NES_SCREEN_SCALE_X_F32: f32 = NES_SCREEN_SCALE_X as f32;
+    pub const NES_SCREEN_SCALE_Y: u32 = 2;
+    pub const NES_SCREEN_SCALE_Y_F32: f32 = NES_SCREEN_SCALE_Y as f32;
+}
+
 extern crate sdl2;
 //https://blog.logrocket.com/using-sdl2-bindings-rust/
 
@@ -20,6 +30,7 @@ use bus::Bus;
 use cartridge::Rom;
 use cpu::CPU;
 use ppu::NesPPU;
+use prelude::*;
 use render::frame::Frame;
 use sdl2::{event::Event, keyboard::Keycode, pixels::PixelFormatEnum};
 use std::{collections::HashMap, error::Error};
@@ -47,7 +58,11 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
     let sdl_context = sdl2::init()?;
     let video_subsystem = sdl_context.video()?;
     let window = video_subsystem
-        .window("NESemu", 256 * 4, 240 * 2)
+        .window(
+            "NESemu",
+            NES_SCREEN_WIDTH * NES_SCREEN_SCALE_X,
+            NES_SCREEN_HEIGHT * NES_SCREEN_SCALE_Y,
+        )
         .position_centered()
         .opengl()
         .build()
@@ -61,11 +76,13 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
 
     let mut event_pump = sdl_context.event_pump().map_err(|e| e.to_string())?;
 
-    canvas.set_scale(2.0, 2.0).map_err(|e| e.to_string())?;
+    canvas
+        .set_scale(NES_SCREEN_SCALE_X_F32, NES_SCREEN_SCALE_Y_F32)
+        .map_err(|e| e.to_string())?;
 
     let creator = canvas.texture_creator();
     let mut texture = creator
-        .create_texture_target(PixelFormatEnum::RGB24, 256 * 2, 240)
+        .create_texture_target(PixelFormatEnum::RGB24, NES_SCREEN_WIDTH, NES_SCREEN_HEIGHT)
         .map_err(|e| e.to_string())?;
 
     //load the game
@@ -88,7 +105,9 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
 
     let bus = Bus::new(rom, move |ppu: &NesPPU, joypad: &mut joypad::Joypad| {
         render::render(ppu, &mut frame);
-        texture.update(None, &frame.data, 256 * 2 * 3).unwrap();
+        texture
+            .update(None, &frame.data, NES_SCREEN_WIDTH_USIZE * 3)
+            .unwrap();
 
         canvas.copy(&texture, None, None).unwrap();
 
