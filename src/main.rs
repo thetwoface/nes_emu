@@ -132,6 +132,8 @@ fn main() -> Result<(), String> {
 
     //load the game
     let bytes: Vec<u8> = std::fs::read("nestest.nes").map_err(|e| e.to_string())?;
+    //let bytes: Vec<u8> = std::fs::read("testroms/branch_timing_tests/1.Branch_Basics.nes").map_err(|e| e.to_string())?;
+    //let bytes: Vec<u8> = std::fs::read("testroms/ppu/color_test.nes").map_err(|e| e.to_string())?;
     let rom = Rom::new(&bytes).map_err(|e| e.to_string())?;
 
     let mut frame = Frame::new();
